@@ -4,7 +4,7 @@ import { motion } from 'framer-motion';
 import { Mail, Phone, MapPin, Clock, MessageCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/components/ui/use-toast';
-import { dbContactMessages } from '@/lib/db';
+import { contactAPI } from '@/lib/api';
 
 const Contact = () => {
   const { toast } = useToast();
@@ -23,27 +23,34 @@ const Contact = () => {
     });
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    
-    // Store in DB
-    dbContactMessages.create(formData);
 
-    // Simulated Email
-    console.log(`[Email Service] Message forwarded to fadywageih14@gmail.com:`, formData);
+    try {
+      const response = await contactAPI.submit(formData);
 
-    toast({
-      title: "Message Sent",
-      description: "Thank you for contacting us. We will respond within 24 business hours.",
-    });
+      if (response.success) {
+        toast({
+          title: "Message Sent",
+          description: "Thank you for contacting us. We will respond within 24 business hours.",
+        });
 
-    setFormData({
-      name: '',
-      email: '',
-      phone: '',
-      subject: '',
-      message: ''
-    });
+        setFormData({
+          name: '',
+          email: '',
+          phone: '',
+          subject: '',
+          message: ''
+        });
+      }
+    } catch (error) {
+      console.error('Contact form error:', error);
+      toast({
+        title: "Submission Failed",
+        description: error.message || "There was an error sending your message. Please try again.",
+        variant: "destructive"
+      });
+    }
   };
 
   const contactInfo = [
@@ -103,9 +110,9 @@ const Contact = () => {
               Get In Touch
             </h2>
             <div className="space-y-6">
-              <a 
-                href="https://wa.me/01225087241" 
-                target="_blank" 
+              <a
+                href="https://wa.me/01225087241"
+                target="_blank"
                 rel="noopener noreferrer"
                 className="block"
               >

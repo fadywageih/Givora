@@ -97,6 +97,24 @@ async function main() {
         }
     ];
 
+    const adminUser = {
+        email: 'admin@admin.com',
+        passwordHash: 'admin',
+        firstName: 'Admin',
+        lastName: 'Admin',
+        phone: '1234567890',
+        address: '123 Main St',
+        accountType: 'ADMIN',
+        isVerified: true,
+        approved: true
+    };
+
+    await prisma.user.upsert({
+        where: { email: adminUser.email },
+        update: {},
+        create: adminUser
+    });
+
     for (const product of products) {
         await prisma.product.upsert({
             where: { sku: product.sku },

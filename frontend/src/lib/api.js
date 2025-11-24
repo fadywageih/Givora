@@ -14,7 +14,19 @@ const api = axios.create({
 // Request interceptor to add auth token
 api.interceptors.request.use(
     (config) => {
-        const token = localStorage.getItem('givora_session_token');
+        const adminToken = localStorage.getItem('givora_admin_token');
+        const userToken = localStorage.getItem('givora_session_token');
+
+        // Use admin token for:
+        // 1. URLs that include '/admin'
+        // 2. Product management endpoints (upload, create, update, delete) when admin is logged in
+        const isAdminRoute = config.url?.includes('/admin');
+        const isProductManagement = config.url?.includes('/products') &&
+            (config.method === 'post' || config.method === 'put' || config.method === 'delete');
+
+        const useAdminToken = (isAdminRoute || isProductManagement) && adminToken;
+        const token = useAdminToken ? adminToken : userToken;
+
         if (token) {
             config.headers.Authorization = `Bearer ${token}`;
         }
@@ -30,10 +42,19 @@ api.interceptors.response.use(
     (response) => response.data,
     (error) => {
         if (error.response?.status === 401) {
-            // Token expired or invalid
-            localStorage.removeItem('givora_session_token');
-            localStorage.removeItem('givora_user');
-            window.location.href = '/login';
+            // Check if this was an admin route
+            const isAdminRoute = error.config?.url?.includes('/admin');
+
+            if (isAdminRoute) {
+                // Admin token expired or invalid
+                localStorage.removeItem('givora_admin_token');
+                window.location.href = '/admin/login';
+            } else {
+                // User token expired or invalid
+                localStorage.removeItem('givora_session_token');
+                localStorage.removeItem('givora_user');
+                window.location.href = '/login';
+            }
         }
         return Promise.reject(error.response?.data || error.message);
     }
@@ -43,7 +64,7 @@ api.interceptors.response.use(
 export const authAPI = {
     register: (data) => api.post('/auth/register', data),
     login: (data) => api.post('/auth/login', data),
-    verifyEmail: (email) => api.post('/auth/verify-email', { email }),
+    verifyEmail: (verificationMail, verificationCode) => api.post('/auth/verify-email', { email: verificationMail, code: verificationCode }),
     getProfile: () => api.get('/auth/me'),
     updateProfile: (data) => api.put('/auth/profile', data),
     forgotPassword: (email) => api.post('/auth/forgot-password', { email }),
@@ -106,13 +127,42 @@ export const paymentAPI = {
 
 // Admin API
 export const adminAPI = {
-    login: (data) => api.post('/admin/login', data),
+    login: (data) => {
+        try {
+            // console.log(data);
+            return api.post('/admin/login', data);
+        } catch (error) {
+            console.error('Admin login failed:', error);
+            throw error;
+        }
+    },
     getStats: () => api.get('/admin/stats'),
 
     // Wholesale management
-    getWholesaleApplications: (status) => api.get('/admin/wholesale/applications', { params: { status } }),
-    approveWholesale: (id) => api.put(`/admin/wholesale/${id}/approve`),
-    rejectWholesale: (id) => api.put(`/admin/wholesale/${id}/reject`),
+    getWholesaleApplications: (status) => {
+        try {
+            return api.get('/admin/wholesale/applications', { params: { status } });
+        } catch (error) {
+            console.error('Failed to fetch wholesale applications:', error);
+            throw error;
+        }
+    },
+    approveWholesale: (id) => {
+        try {
+            return api.put(`/admin/wholesale/${id}/approve`);
+        } catch (error) {
+            console.error('Failed to approve wholesale application:', error);
+            throw error;
+        }
+    },
+    rejectWholesale: (id) => {
+        try {
+            return api.put(`/admin/wholesale/${id}/reject`);
+        } catch (error) {
+            console.error('Failed to reject wholesale application:', error);
+            throw error;
+        }
+    },
 
     // Messages
     getMessages: (read) => api.get('/admin/messages', { params: { read } }),
@@ -122,6 +172,20 @@ export const adminAPI = {
     // Orders
     getOrders: (status) => api.get('/admin/orders', { params: { status } }),
     updateOrderStatus: (id, status) => api.put(`/admin/orders/${id}/status`, { status }),
+
+    // Products
+    getProducts: (status) => api.get('/products', { params: { status } }),
+    updateProductStatus: (id, status) => api.put(`/products/${id}/status`, { status }),
+    createProduct: (data) => api.post('/products', data),
+    updateProduct: (id, data) => api.put(`/products/${id}`, data),
+    deleteProduct: (id) => api.delete(`/products/${id}`),
+    uploadProductImage: (formData) => {
+        return api.post('/products/upload-image', formData, {
+            headers: {
+                'Content-Type': 'multipart/form-data'
+            }
+        });
+    },
 
     // Users
     getUsers: (accountType) => api.get('/admin/users', { params: { accountType } })

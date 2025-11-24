@@ -6,7 +6,6 @@ import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/components/ui/use-toast';
 import { Mail } from 'lucide-react';
-import { authAPI } from '@/lib/api';
 
 const Login = () => {
   const navigate = useNavigate();
@@ -14,6 +13,7 @@ const Login = () => {
   const { toast } = useToast();
   const [isLogin, setIsLogin] = useState(true);
 
+  const [verificationCode, setVerificationCode] = useState('');
   const [showVerification, setShowVerification] = useState(false);
   const [verificationEmail, setVerificationEmail] = useState('');
 
@@ -51,18 +51,35 @@ const Login = () => {
   };
 
   const handleVerify = async () => {
-    const success = await verifyEmail(verificationEmail);
-    if (success) {
+    if (!verificationEmail || !verificationCode) {
       toast({
-        title: "Email Verified",
-        description: "You can now log in.",
+        title: "Error",
+        description: "Please enter both email and verification code.",
+        variant: "destructive"
       });
-      setShowVerification(false);
-      setIsLogin(true);
-    } else {
+      return;
+    }
+    try {
+      console.log(verificationEmail, verificationCode);
+      const success = await verifyEmail(verificationEmail, verificationCode);
+      if (success) {
+        toast({
+          title: "Email Verified",
+          description: "You can now log in.",
+        });
+        setShowVerification(false);
+        setIsLogin(true);
+      } else {
+        toast({
+          title: "Verification Failed",
+          description: "Invalid email or verification code.",
+          variant: "destructive"
+        });
+      }
+    } catch (error) {
       toast({
         title: "Verification Failed",
-        description: "Invalid email or already verified.",
+        description: error.message,
         variant: "destructive"
       });
     }
@@ -121,9 +138,10 @@ const Login = () => {
           <h2 className="text-2xl font-bold text-[#0A1F44] mb-4">Verify Your Email</h2>
           <p className="text-[#0A1F44]/70 mb-6">
             We've sent a verification link to <strong>{verificationEmail}</strong>.
-            (For this demo, click the button below to simulate clicking the email link).
+            {/* (For this demo, click the button below to simulate clicking the email link). */}
           </p>
-          <Button onClick={handleVerify} className="w-full bg-[#0A1F44] hover:bg-[#0A1F44]/90">
+          <input placeholder="Verification Code" type="text" className="w-full p-2 border border-gray-300 rounded mb-4" value={verificationCode} maxLength={6} onChange={(e) => setVerificationCode(e.target.value)} />
+          <Button onClick={handleVerify} className="w-full bg-[#0A1F44] text-white hover:bg-[#0A1F44]/90">
             Verify & Continue
           </Button>
         </motion.div>

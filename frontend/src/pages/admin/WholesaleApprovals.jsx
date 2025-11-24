@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Helmet } from 'react-helmet';
-import { dbWholesale } from '@/lib/db';
+import { adminAPI } from '@/lib/api';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/components/ui/use-toast';
 import { Check, X } from 'lucide-react';
@@ -13,24 +13,38 @@ const WholesaleApprovals = () => {
     loadApps();
   }, []);
 
-  const loadApps = () => {
-    setApplications(dbWholesale.getAll());
+  const loadApps = async () => {
+    try {
+      const res = await adminAPI.getWholesaleApplications();
+      console.log(res?.data?.applications);
+      setApplications(res?.data?.applications);
+    } catch (error) {
+      console.error(error);
+    }
   };
 
   const handleStatus = (id, status) => {
-    dbWholesale.updateStatus(id, status);
-    loadApps();
-    toast({ 
-      title: `Application ${status === 'approved' ? 'Approved' : 'Rejected'}`,
-      description: `User status updated.` 
-    });
+    try {
+      if (status === 'approved') {
+        adminAPI.approveWholesale(id);
+      } else {
+        adminAPI.rejectWholesale(id);
+      }
+      loadApps();
+      toast({
+        title: `Application ${status === 'approved' ? 'Approved' : 'Rejected'}`,
+        description: `User status updated.`
+      });
+    } catch (error) {
+      console.error(error);
+    }
   };
 
   return (
     <>
       <Helmet><title>Wholesale Approvals - Admin</title></Helmet>
       <h1 className="text-2xl font-bold text-[#0A1F44] mb-6">Wholesale Applications</h1>
-      
+
       <div className="bg-white rounded-lg shadow overflow-hidden">
         <table className="w-full text-left">
           <thead className="bg-gray-50 border-b">
@@ -46,37 +60,36 @@ const WholesaleApprovals = () => {
             {applications.map(app => (
               <tr key={app.id} className="hover:bg-gray-50">
                 <td className="p-4">
-                  <p className="font-bold text-[#0A1F44]">{app.business_name}</p>
-                  <p className="text-sm text-gray-500">EIN: {app.ein_number}</p>
+                  <p className="font-bold text-[#0A1F44]">{app.businessName}</p>
+                  <p className="text-sm text-gray-500">EIN: {app.einNumber}</p>
                 </td>
                 <td className="p-4">
-                  <p className="text-sm"><span className="font-medium">Type:</span> {app.business_type}</p>
+                  <p className="text-sm"><span className="font-medium">Type:</span> {app.businessType}</p>
                   <p className="text-sm text-gray-500">{app.address}, {app.city}</p>
                 </td>
                 <td className="p-4">
                   <p className="text-sm font-mono">{app.phone}</p>
                 </td>
                 <td className="p-4">
-                  <span className={`px-2 py-1 text-xs font-bold uppercase rounded-full ${
-                    app.approval_status === 'approved' ? 'bg-green-100 text-green-800' :
-                    app.approval_status === 'rejected' ? 'bg-red-100 text-red-800' :
-                    'bg-yellow-100 text-yellow-800'
-                  }`}>
-                    {app.approval_status}
+                  <span className={`px-2 py-1 text-xs font-bold uppercase rounded-full ${app.approvalStatus === 'approved' ? 'bg-green-100 text-green-800' :
+                    app.approvalStatus === 'rejected' ? 'bg-red-100 text-red-800' :
+                      'bg-yellow-100 text-yellow-800'
+                    }`}>
+                    {app.approvalStatus}
                   </span>
                 </td>
                 <td className="p-4">
-                  {app.approval_status === 'pending' && (
+                  {app.approvalStatus === 'pending' && (
                     <div className="flex space-x-2">
-                      <Button 
-                        size="sm" 
+                      <Button
+                        size="sm"
                         className="bg-green-600 hover:bg-green-700 text-white"
                         onClick={() => handleStatus(app.id, 'approved')}
                       >
                         <Check className="w-4 h-4" />
                       </Button>
-                      <Button 
-                        size="sm" 
+                      <Button
+                        size="sm"
                         variant="destructive"
                         onClick={() => handleStatus(app.id, 'rejected')}
                       >

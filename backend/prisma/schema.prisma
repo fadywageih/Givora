@@ -12,43 +12,47 @@ datasource db {
 
 // User Model - Authentication and Profile
 model User {
-  id            String    @id @default(uuid())
-  email         String    @unique
-  passwordHash  String    @map("password_hash")
-  firstName     String?   @map("first_name")
-  lastName      String?   @map("last_name")
-  phone         String?
-  address       String?
-  accountType   String    @default("retail") @map("account_type") // "retail" or "wholesale"
-  isVerified    Boolean   @default(false) @map("is_verified")
-  approved      Boolean   @default(false) // For wholesale approval
-  createdAt     DateTime  @default(now()) @map("created_at")
-  updatedAt     DateTime  @updatedAt @map("updated_at")
+  id                      String    @id @default(uuid())
+  email                   String    @unique
+  passwordHash            String    @map("password_hash")
+  firstName               String?   @map("first_name")
+  lastName                String?   @map("last_name")
+  phone                   String?
+  address                 String?
+  accountType             String    @default("retail") @map("account_type") // "retail" or "wholesale"
+  isVerified              Boolean   @default(false) @map("is_verified")
+  approved                Boolean   @default(false) // For wholesale approval
+  createdAt               DateTime  @default(now()) @map("created_at")
+  updatedAt               DateTime  @updatedAt @map("updated_at")
+  verificationCode        String?   @map("verification_code")
+  verificationCodeExpiry  DateTime? @map("verification_code_expiry")
+  verificationEmailSentAt DateTime? @map("verification_email_sent_at")
 
   // Relations
   cartItems            CartItem[]
   orders               Order[]
   wholesaleApplication WholesaleApplication?
   passwordResetTokens  PasswordResetToken[]
+  Token                Token[]
 
   @@map("users")
 }
 
 // Product Model - Catalog Management
 model Product {
-  id             Int       @id @default(autoincrement())
+  id             Int      @id @default(autoincrement())
   name           String
   category       String
   description    String?
-  sku            String    @unique
-  moq            Int       @default(100) // Minimum Order Quantity
-  retailPrice    Float     @map("retail_price")
-  wholesalePrice Float     @map("wholesale_price")
-  stockQuantity  Int       @map("stock_quantity")
-  imageUrl       String?   @map("image_url")
-  cloudinaryId   String?   @map("cloudinary_id") // For Cloudinary cleanup
-  createdAt      DateTime  @default(now()) @map("created_at")
-  updatedAt      DateTime  @updatedAt @map("updated_at")
+  sku            String   @unique
+  moq            Int      @default(100) // Minimum Order Quantity
+  retailPrice    Float    @map("retail_price")
+  wholesalePrice Float    @map("wholesale_price")
+  stockQuantity  Int      @map("stock_quantity")
+  imageUrl       String?  @map("image_url")
+  cloudinaryId   String?  @map("cloudinary_id") // For Cloudinary cleanup
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
 
   // Relations
   cartItems  CartItem[]
@@ -116,20 +120,20 @@ model OrderItem {
 
 // Wholesale Application Model - B2B Approval Workflow
 model WholesaleApplication {
-  id               String   @id @default(uuid())
-  userId           String   @unique @map("user_id")
-  businessName     String   @map("business_name")
-  einNumber        String   @map("ein_number")
-  businessType     String   @map("business_type")
-  address          String
-  city             String
-  state            String
-  zip              String
-  phone            String
-  approvalStatus   String   @default("pending") @map("approval_status") // pending, approved, rejected
-  totalUnitsOrdered Int     @default(0) @map("total_units_ordered")
-  createdAt        DateTime @default(now()) @map("created_at")
-  updatedAt        DateTime @updatedAt @map("updated_at")
+  id                String   @id @default(uuid())
+  userId            String   @unique @map("user_id")
+  businessName      String   @map("business_name")
+  einNumber         String   @map("ein_number")
+  businessType      String   @map("business_type")
+  address           String
+  city              String
+  state             String
+  zip               String
+  phone             String
+  approvalStatus    String   @default("pending") @map("approval_status") // pending, approved, rejected
+  totalUnitsOrdered Int      @default(0) @map("total_units_ordered")
+  createdAt         DateTime @default(now()) @map("created_at")
+  updatedAt         DateTime @updatedAt @map("updated_at")
 
   // Relations
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -170,7 +174,7 @@ model Token {
   id        String   @id @default(uuid())
   userId    String   @map("user_id")
   token     String   @unique
-  type      String   // e.g., "email_verification", "login_magic_link"
+  type      String // e.g., "email_verification", "login_magic_link"
   expiresAt DateTime @map("expires_at")
   createdAt DateTime @default(now()) @map("created_at")
 

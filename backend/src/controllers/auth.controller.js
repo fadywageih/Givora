@@ -3,11 +3,20 @@ import { hashPassword, comparePassword } from '../utils/password.js';
 import { generateToken } from '../utils/jwt.js';
 import { config } from '../config/env.js';
 import crypto from 'crypto';
+import { sendVerificationEmail } from '../utils/email.js';
+import { sendPasswordResetEmail } from '../utils/email.js';
 
 /**
  * Register new user
  * POST /api/auth/register
  */
+// Generate a verification code and expiration time
+const generateVerificationCode = () => {
+    const code = Math.floor(100000 + Math.random() * 900000).toString(); // 6-digit code
+    const expiresAt = new Date(Date.now() + 15 * 60 * 1000); // 15 minutes from now
+    return { verificationCode: code, verificationCodeExpiry: expiresAt };
+};
+
 export const register = async (req, res, next) => {
     try {
         const { email, password, accountType, firstName, lastName, phone, address } = req.body;
@@ -26,6 +35,7 @@ export const register = async (req, res, next) => {
 
         // Hash password
         const passwordHash = await hashPassword(password);
+        const { verificationCode, verificationCodeExpiry } = generateVerificationCode();
 
         // Create user
         const user = await prisma.user.create({
@@ -37,18 +47,27 @@ export const register = async (req, res, next) => {
                 lastName: lastName || null,
                 phone: phone || null,
                 address: address || null,
-                isVerified: false // In production, send verification email
+                isVerified: false,
+                verificationCode,
+                verificationCodeExpiry,
+                verificationEmailSentAt: new Date()
             },
+
             select: {
                 id: true,
                 email: true,
                 firstName: true,
                 lastName: true,
+                phone: true,
+                address: true,
                 accountType: true,
                 isVerified: true,
                 createdAt: true
             }
         });
+        // Send verification email
+        await sendVerificationEmail(user, verificationCode);
+
 
         res.status(201).json({
             success: true,
@@ -147,24 +166,59 @@ export const login = async (req, res, next) => {
  * Verify email
  * POST /api/auth/verify-email
  */
+
 export const verifyEmail = async (req, res, next) => {
     try {
-        const { email } = req.body;
+        const { email, code } = req.body;
+        console.log(code);
+        console.log(email);
 
-        const user = await prisma.user.update({
+        if (!code || !email) {
+            return res.status(400).json({
+                success: false,
+                message: 'Missing code or email'
+            });
+        }
+        const user = await prisma.user.findUnique({ where: { email } });
+        if (!user) {
+            return res.status(404).json({
+                success: false,
+                message: 'User not found'
+            });
+        }
+        if (user.isVerified) {
+            return res.status(400).json({
+                success: false,
+                message: 'User already verified'
+            });
+        }
+        if (user.verificationCode !== code) {
+            return res.status(400).json({
+                success: false,
+                message: 'Invalid verification code'
+            });
+        }
+        if (new Date() > user.verificationCodeExpiry) {
+            return res.status(400).json({
+                success: false,
+                message: 'Verification code expired'
+            });
+        }
+        const updatedUser = await prisma.user.update({
             where: { email },
             data: { isVerified: true },
             select: {
                 id: true,
                 email: true,
-                isVerified: true
+                isVerified: true,
+                createdAt: true
             }
         });
 
-        res.json({
+        res.status(200).json({
             success: true,
             message: 'Email verified successfully',
-            data: { user }
+            data: { updatedUser }
         });
     } catch (error) {
         next(error);
@@ -278,7 +332,7 @@ export const forgotPassword = async (req, res, next) => {
 
         // In production, send email with reset link
         console.log(`Password reset token for ${email}: ${resetToken}`);
-
+        await sendPasswordResetEmail(user, resetToken);
         res.json({
             success: true,
             message: 'If the email exists, a password reset link has been sent.',
@@ -347,11 +401,12 @@ export const resetPassword = async (req, res, next) => {
 export const adminLogin = async (req, res, next) => {
     try {
         const { email, password } = req.body;
-
+        console.log(email, password);
         // Check against admin accounts
         const admin = config.adminAccounts.find(
             acc => acc.email === email && acc.password === password
         );
+        console.log(admin);
 
         if (!admin) {
             return res.status(401).json({

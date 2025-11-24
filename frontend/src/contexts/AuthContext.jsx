@@ -1,6 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { useGoogleLogin } from '@react-oauth/google';
-import { dbPasswordReset } from '@/lib/db';
 import { useToast } from '@/components/ui/use-toast';
 import { authAPI, cartAPI, wholesaleAPI, adminAPI } from '@/lib/api';
 
@@ -187,9 +186,11 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  const verifyEmail = async (email) => {
+  const verifyEmail = async (verificationMail, verificationCode) => {
     try {
-      const res = await authAPI.verifyEmail(email);
+      console.log(verificationMail, verificationCode);
+      const res = await authAPI.verifyEmail(verificationMail, verificationCode);
+      console.log(res);
       return res.success;
     } catch (error) {
       console.error("Verify email error:", error);
@@ -216,8 +217,6 @@ export const AuthProvider = ({ children }) => {
   const requestPasswordReset = async (email) => {
     const res = await authAPI.forgotPassword(email);
     if (res.success) {
-      // In dev, token might be returned
-      if (res.token) console.log(`Reset Token for ${email}: ${res.token}`);
       return res.token;
     } else {
       throw new Error(res.message);

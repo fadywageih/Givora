@@ -12,7 +12,7 @@ const ResetPassword = () => {
   const token = searchParams.get('token');
   const { resetPassword } = useAuth();
   const { toast } = useToast();
-  
+
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
 
@@ -23,7 +23,7 @@ const ResetPassword = () => {
     }
   }, [token, navigate, toast]);
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     if (password !== confirmPassword) {
       toast({ title: "Error", description: "Passwords do not match", variant: "destructive" });
@@ -31,11 +31,11 @@ const ResetPassword = () => {
     }
 
     try {
-      resetPassword(token, password);
+      await resetPassword(token, password);
       toast({ title: "Success", description: "Password reset successfully. Please login." });
       navigate('/login');
     } catch (error) {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
+      toast({ title: "Error", description: error.message || "Failed to reset password", variant: "destructive" });
     }
   };
 
@@ -43,29 +43,29 @@ const ResetPassword = () => {
     <>
       <Helmet><title>Reset Password - GIVORA</title></Helmet>
       <div className="min-h-[60vh] flex items-center justify-center px-4 py-12">
-        <motion.div 
+        <motion.div
           initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
           className="bg-white p-8 rounded-lg shadow-lg max-w-md w-full"
         >
           <h1 className="text-2xl font-bold text-[#0A1F44] mb-6">Set New Password</h1>
-          
+
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
               <label className="block text-sm font-medium text-[#0A1F44] mb-1">New Password</label>
-              <input 
-                type="password" 
-                required 
-                value={password} 
+              <input
+                type="password"
+                required
+                value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-[#C9A227] outline-none"
               />
             </div>
             <div>
               <label className="block text-sm font-medium text-[#0A1F44] mb-1">Confirm Password</label>
-              <input 
-                type="password" 
-                required 
-                value={confirmPassword} 
+              <input
+                type="password"
+                required
+                value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
                 className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-[#C9A227] outline-none"
               />

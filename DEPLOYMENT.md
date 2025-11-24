@@ -70,6 +70,7 @@ DATABASE_URL="mysql://username:password@localhost:3306/database_name"
 ```bash
 npx prisma migrate deploy
 npx prisma generate
+npx prisma db push
 node prisma/seed.js
 ```
 

@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Helmet } from 'react-helmet';
-import { dbProducts } from '@/lib/db';
+import { adminAPI } from '@/lib/api';
 import { Button } from '@/components/ui/button';
-import { Plus, Edit, Trash2 } from 'lucide-react';
+import { Plus, Edit, Trash2, Upload, X } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
 
 const ProductManagement = () => {
@@ -10,12 +10,15 @@ const ProductManagement = () => {
   const [isEditing, setIsEditing] = useState(false);
   const [currentProduct, setCurrentProduct] = useState(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(null);
+  const [selectedImage, setSelectedImage] = useState(null);
+  const [imagePreview, setImagePreview] = useState('');
+  const [uploading, setUploading] = useState(false);
   const { toast } = useToast();
 
   const initialForm = {
-    name: '', category: '', sku: '', moq: 100, 
-    retail_price: 0, wholesale_price: 0, stock_quantity: 0, 
-    image_url: ''
+    name: '', category: '', sku: '', moq: 100,
+    retailPrice: 0, wholesalePrice: 0, stockQuantity: 0,
+    imageUrl: '', cloudinaryId: ''
   };
   const [formData, setFormData] = useState(initialForm);
 
@@ -23,38 +26,105 @@ const ProductManagement = () => {
     loadProducts();
   }, []);
 
-  const loadProducts = () => setProducts(dbProducts.getAll());
+  const loadProducts = async () => {
+    try {
+      const res = await adminAPI.getProducts();
+      setProducts(res.data.products);
+    } catch (error) {
+      console.error(error);
+    }
+  };
 
   const handleAddNew = () => {
     setFormData(initialForm);
     setCurrentProduct(null);
+    setSelectedImage(null);
+    setImagePreview('');
     setIsEditing(true);
   };
 
   const handleEdit = (product) => {
     setFormData(product);
     setCurrentProduct(product);
+    setSelectedImage(null);
+    setImagePreview(product.imageUrl || '');
     setIsEditing(true);
   };
 
-  const handleDelete = (id) => {
-    dbProducts.delete(id);
-    loadProducts();
+  const handleDelete = async (id) => {
+    await adminAPI.deleteProduct(id);
+    await loadProducts();
     setShowDeleteConfirm(null);
     toast({ title: "Deleted", description: "Product removed." });
   };
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    if (currentProduct) {
-      dbProducts.update(currentProduct.id, formData);
-      toast({ title: "Updated", description: "Product updated." });
-    } else {
-      dbProducts.create(formData);
-      toast({ title: "Created", description: "New product added." });
+  const handleImageSelect = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      setSelectedImage(file);
+      // Create preview
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setImagePreview(reader.result);
+      };
+      reader.readAsDataURL(file);
     }
-    setIsEditing(false);
-    loadProducts();
+  };
+
+  const handleImageUpload = async () => {
+    if (!selectedImage) return null;
+
+    setUploading(true);
+    try {
+      const formDataUpload = new FormData();
+      formDataUpload.append('image', selectedImage);
+
+      const res = await adminAPI.uploadProductImage(formDataUpload);
+
+      if (res.success) {
+        toast({ title: "Success", description: "Image uploaded successfully!" });
+        return {
+          imageUrl: res.data.imageUrl,
+          cloudinaryId: res.data.cloudinaryId || ''
+        };
+      }
+    } catch (error) {
+      console.error(error);
+      toast({ title: "Error", description: "Failed to upload image", variant: "destructive" });
+      return null;
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+
+    try {
+      let finalFormData = { ...formData };
+      console.log(finalFormData);
+      // Upload image first if selected
+      if (selectedImage) {
+        const imageData = await handleImageUpload();
+        console.log(imageData);
+        if (imageData) {
+          finalFormData = { ...finalFormData, ...imageData };
+        }
+      }
+
+      if (currentProduct) {
+        await adminAPI.updateProduct(currentProduct.id, finalFormData);
+        toast({ title: "Updated", description: "Product updated." });
+      } else {
+        await adminAPI.createProduct(finalFormData);
+        toast({ title: "Created", description: "New product added." });
+      }
+      setIsEditing(false);
+      await loadProducts();
+    } catch (error) {
+      console.error(error);
+      toast({ title: "Error", description: "Failed to save product", variant: "destructive" });
+    }
   };
 
   const handleChange = (e) => {
@@ -64,47 +134,85 @@ const ProductManagement = () => {
 
   if (isEditing) {
     return (
-      <div className="bg-white p-6 rounded-lg shadow max-w-2xl mx-auto">
+      <div className="bg-white p-6 rounded-lg shadow max-w-3xl mx-auto">
         <h2 className="text-xl font-bold mb-6">{currentProduct ? 'Edit Product' : 'Add New Product'}</h2>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-               <label className="block text-sm font-medium mb-1">Name</label>
-               <input required name="name" value={formData.name} onChange={handleChange} className="w-full p-2 border rounded" />
-            </div>
-            <div>
-               <label className="block text-sm font-medium mb-1">Category</label>
-               <input required name="category" value={formData.category} onChange={handleChange} className="w-full p-2 border rounded" />
-            </div>
-            <div>
-               <label className="block text-sm font-medium mb-1">SKU</label>
-               <input required name="sku" value={formData.sku} onChange={handleChange} className="w-full p-2 border rounded" />
-            </div>
-            <div>
-               <label className="block text-sm font-medium mb-1">MOQ</label>
-               <input type="number" required name="moq" value={formData.moq} onChange={handleChange} className="w-full p-2 border rounded" />
-            </div>
-            <div>
-               <label className="block text-sm font-medium mb-1">Retail Price</label>
-               <input type="number" step="0.01" required name="retail_price" value={formData.retail_price} onChange={handleChange} className="w-full p-2 border rounded" />
-            </div>
-            <div>
-               <label className="block text-sm font-medium mb-1">Wholesale Price</label>
-               <input type="number" step="0.01" required name="wholesale_price" value={formData.wholesale_price} onChange={handleChange} className="w-full p-2 border rounded" />
-            </div>
-            <div>
-               <label className="block text-sm font-medium mb-1">Stock</label>
-               <input type="number" required name="stock_quantity" value={formData.stock_quantity} onChange={handleChange} className="w-full p-2 border rounded" />
-            </div>
-            <div>
-               <label className="block text-sm font-medium mb-1">Image URL</label>
-               <input required name="image_url" value={formData.image_url} onChange={handleChange} className="w-full p-2 border rounded" placeholder="https://..." />
+        <form onSubmit={handleSubmit} className="space-y-6">
+          {/* Image Upload Section */}
+          <div className="border-2 border-dashed border-gray-300 rounded-lg p-6">
+            <label className="block text-sm font-medium mb-2">Product Image</label>
+            <div className="flex items-center gap-4">
+              {imagePreview && (
+                <div className="relative">
+                  <img src={imagePreview} alt="Preview" className="w-32 h-32 object-cover rounded" />
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSelectedImage(null);
+                      setImagePreview('');
+                      setFormData({ ...formData, imageUrl: '', cloudinaryId: '' });
+                    }}
+                    className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+              )}
+              <div className="flex-1">
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={handleImageSelect}
+                  className="hidden"
+                  id="image-upload"
+                />
+                <label
+                  htmlFor="image-upload"
+                  className="cursor-pointer inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
+                >
+                  <Upload className="w-4 h-4 mr-2" />
+                  {selectedImage ? 'Change Image' : 'Upload Image'}
+                </label>
+                <p className="text-xs text-gray-500 mt-2">PNG, JPG up to 10MB</p>
+              </div>
             </div>
           </div>
-          
+
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium mb-1">Name</label>
+              <input required name="name" value={formData.name} onChange={handleChange} className="w-full p-2 border rounded" />
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-1">Category</label>
+              <input required name="category" value={formData.category} onChange={handleChange} className="w-full p-2 border rounded" />
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-1">SKU</label>
+              <input required name="sku" value={formData.sku} onChange={handleChange} className="w-full p-2 border rounded" />
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-1">MOQ</label>
+              <input type="number" required name="moq" value={formData.moq} onChange={handleChange} className="w-full p-2 border rounded" />
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-1">Retail Price</label>
+              <input type="number" step="0.01" required name="retailPrice" value={formData.retailPrice} onChange={handleChange} className="w-full p-2 border rounded" />
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-1">Wholesale Price</label>
+              <input type="number" step="0.01" required name="wholesalePrice" value={formData.wholesalePrice} onChange={handleChange} className="w-full p-2 border rounded" />
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-1">Stock</label>
+              <input type="number" required name="stockQuantity" value={formData.stockQuantity} onChange={handleChange} className="w-full p-2 border rounded" />
+            </div>
+          </div>
+
           <div className="flex justify-end space-x-3 pt-4">
             <Button type="button" variant="outline" onClick={() => setIsEditing(false)}>Cancel</Button>
-            <Button type="submit" className="bg-[#0A1F44] text-white">Save Product</Button>
+            <Button type="submit" className="bg-[#0A1F44] text-white hover:bg-[#0A1F40]" disabled={uploading}>
+              {uploading ? 'Uploading...' : 'Save Product'}
+            </Button>
           </div>
         </form>
       </div>
@@ -120,7 +228,7 @@ const ProductManagement = () => {
           <Plus className="w-4 h-4 mr-2" /> Add Product
         </Button>
       </div>
-      
+
       <div className="bg-white rounded-lg shadow overflow-hidden">
         <table className="w-full text-left">
           <thead className="bg-gray-50 border-b">
@@ -136,7 +244,7 @@ const ProductManagement = () => {
             {products.map(p => (
               <tr key={p.id} className="hover:bg-gray-50">
                 <td className="p-4 flex items-center space-x-3">
-                  <img src={p.image_url} alt="" className="w-10 h-10 rounded object-cover bg-gray-200" />
+                  <img src={p.imageUrl} alt="" className="w-10 h-10 rounded object-cover bg-gray-200" />
                   <span className="font-medium">{p.name}</span>
                 </td>
                 <td className="p-4 text-sm">
@@ -144,10 +252,10 @@ const ProductManagement = () => {
                   <p className="text-gray-500">{p.category}</p>
                 </td>
                 <td className="p-4 text-sm">
-                  <p>Retail: ${p.retail_price}</p>
-                  <p className="text-gray-500">Wholesale: ${p.wholesale_price}</p>
+                  <p>Retail: ${p.retailPrice}</p>
+                  <p className="text-gray-500">Wholesale: ${p.wholesalePrice}</p>
                 </td>
-                <td className="p-4 text-sm">{p.stock_quantity}</td>
+                <td className="p-4 text-sm">{p.stockQuantity}</td>
                 <td className="p-4">
                   <div className="flex space-x-2">
                     <Button size="sm" variant="ghost" onClick={() => handleEdit(p)}><Edit className="w-4 h-4" /></Button>

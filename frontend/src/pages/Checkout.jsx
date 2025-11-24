@@ -6,26 +6,238 @@ import { CheckCircle, Truck, CreditCard, Lock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/components/ui/use-toast';
-import { dbOrders, dbWholesale } from '@/lib/db';
+import { paymentAPI, ordersAPI } from '@/lib/api';
+import { loadStripe } from '@stripe/stripe-js';
+import { Elements, CardElement, useStripe, useElements } from '@stripe/react-stripe-js';
 
-const Checkout = () => {
+// Initialize Stripe
+const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY);
+
+const CheckoutForm = ({ total, shippingMethod, onSuccess }) => {
+  const stripe = useStripe();
+  const elements = useElements();
   const { cart, user, getDiscountRate, clearCart } = useAuth();
-  const navigate = useNavigate();
   const { toast } = useToast();
-  const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
-  const [shippingMethod, setShippingMethod] = useState('standard');
-
   const [billingDetails, setBillingDetails] = useState({
-    name: user?.first_name ? `${user.first_name} ${user.last_name}` : '',
+    name: user?.firstName ? `${user.firstName} ${user.lastName}` : '',
     address: user?.address || '',
     city: '',
     state: '',
-    zip: '',
-    cardNumber: '',
-    expiry: '',
-    cvc: ''
+    zip: ''
   });
+
+  const handleInputChange = (e) => {
+    setBillingDetails({ ...billingDetails, [e.target.name]: e.target.value });
+  };
+
+  const isWholesale = user?.accountType === 'wholesale' && user?.approved;
+  const volumeDiscount = getDiscountRate();
+
+  const calculateItemPrice = (item) => {
+    const product = item.product;
+    let price = isWholesale ? product.wholesalePrice : product.retailPrice;
+    if (isWholesale && volumeDiscount > 0) price = price * (1 - volumeDiscount);
+    return price;
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+
+    if (!stripe || !elements) {
+      toast({
+        title: "Payment System Loading",
+        description: "Please wait for the payment system to load.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setLoading(true);
+
+    try {
+      // Create payment intent
+      const clientSecret = await paymentAPI.createIntent(
+        Math.round(total * 100), // Convert to cents
+        {
+          userId: user.id,
+          shippingMethod
+        }
+      );
+      console.log(clientSecret.data.clientSecret);
+      // Confirm payment with Stripe
+      const { error, paymentIntent } = await stripe.confirmCardPayment(clientSecret.data.clientSecret, {
+        payment_method: {
+          card: elements.getElement(CardElement),
+          billing_details: {
+            name: billingDetails.name,
+            address: {
+              line1: billingDetails.address,
+              city: billingDetails.city,
+              state: billingDetails.state,
+              postal_code: billingDetails.zip
+            }
+          }
+        }
+      });
+
+      if (error) {
+        throw new Error(error.message);
+      }
+
+      if (paymentIntent.status === 'succeeded') {
+        // Create order in database
+        const subtotal = cart.reduce((sum, item) => sum + (calculateItemPrice(item) * item.quantity), 0);
+        const shippingCost = shippingMethod === 'express' ? 10.00 : 7.00;
+        const taxRate = 0.08;
+        const taxAmount = subtotal * taxRate;
+
+        await ordersAPI.create({
+          shippingMethod,
+          paymentMethod: 'stripe',
+          stripePaymentId: paymentIntent.id,
+          items: cart.map(item => ({
+            productId: item.product.id,
+            quantity: item.quantity,
+            price: calculateItemPrice(item)
+          }))
+        });
+
+        // Clear cart
+        await clearCart();
+
+        toast({
+          title: "Payment Successful",
+          description: "Your order has been placed successfully."
+        });
+
+        onSuccess();
+      }
+    } catch (error) {
+      console.error('Payment error:', error);
+      toast({
+        title: "Payment Failed",
+        description: error.message || "There was an error processing your payment.",
+        variant: "destructive"
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <form onSubmit={handleSubmit} className="space-y-4">
+      <div className="p-4 bg-gray-50 rounded-lg border border-gray-200 mb-6">
+        <p className="text-sm text-gray-500 mb-2 flex items-center gap-1">
+          <Lock className="w-3 h-3" /> Secure Stripe Transaction
+        </p>
+
+        <div className="space-y-4">
+          <div>
+            <label className="block text-xs font-medium text-gray-700 mb-1">Card Details</label>
+            <div className="p-3 border rounded bg-white min-h-[40px] flex items-center">
+              {!stripe ? (
+                <p className="text-sm text-gray-400">Loading payment form...</p>
+              ) : (
+                <div className="w-full">
+                  <CardElement
+                    options={{
+                      style: {
+                        base: {
+                          fontSize: '16px',
+                          color: '#424770',
+                          fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+                          '::placeholder': {
+                            color: '#aab7c4',
+                          },
+                        },
+                        invalid: {
+                          color: '#9e2146',
+                        },
+                      },
+                    }}
+                  />
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <h3 className="font-bold text-[#0A1F44] mb-2">Billing Address</h3>
+      <div className="space-y-3">
+        <input
+          type="text"
+          name="name"
+          value={billingDetails.name}
+          onChange={handleInputChange}
+          placeholder="Full Name"
+          className="w-full p-2 border rounded"
+          required
+        />
+        <input
+          type="text"
+          name="address"
+          value={billingDetails.address}
+          onChange={handleInputChange}
+          placeholder="Address Line 1"
+          className="w-full p-2 border rounded"
+          required
+        />
+        <div className="grid grid-cols-3 gap-3">
+          <input
+            type="text"
+            name="city"
+            value={billingDetails.city}
+            onChange={handleInputChange}
+            placeholder="City"
+            className="w-full p-2 border rounded"
+            required
+          />
+          <input
+            type="text"
+            name="state"
+            value={billingDetails.state}
+            onChange={handleInputChange}
+            placeholder="State"
+            className="w-full p-2 border rounded"
+            required
+          />
+          <input
+            type="text"
+            name="zip"
+            value={billingDetails.zip}
+            onChange={handleInputChange}
+            placeholder="ZIP"
+            className="w-full p-2 border rounded"
+            required
+          />
+        </div>
+      </div>
+
+      <div className="mt-6 space-y-2 pt-4 border-t">
+        <div className="flex justify-between font-bold text-lg">
+          <span>Total to Pay</span>
+          <span>${total.toFixed(2)}</span>
+        </div>
+      </div>
+
+      <Button
+        type="submit"
+        className="w-full bg-[#0A1F44] text-white hover:bg-[#C9A227] transition-all duration-300"
+        disabled={!stripe || loading}
+      >
+        {loading ? 'Processing...' : `Pay $${total.toFixed(2)}`}
+      </Button>
+    </form>
+  );
+};
+
+const Checkout = () => {
+  const { cart, user, getDiscountRate } = useAuth();
+  const navigate = useNavigate();
+  const [step, setStep] = useState(1);
+  const [shippingMethod, setShippingMethod] = useState('standard');
 
   useEffect(() => {
     if (!cart || cart.length === 0) {
@@ -33,12 +245,12 @@ const Checkout = () => {
     }
   }, [cart, navigate]);
 
-  const isWholesale = user?.account_type === 'wholesale' && user?.approved;
+  const isWholesale = user?.accountType === 'wholesale' && user?.approved;
   const volumeDiscount = getDiscountRate();
 
   const calculateItemPrice = (item) => {
     const product = item.product;
-    let price = isWholesale ? product.wholesale_price : product.retail_price;
+    let price = isWholesale ? product.wholesalePrice : product.retailPrice;
     if (isWholesale && volumeDiscount > 0) price = price * (1 - volumeDiscount);
     return price;
   };
@@ -53,45 +265,6 @@ const Checkout = () => {
     const date = new Date();
     date.setDate(date.getDate() + days);
     return date.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
-  };
-
-  const handleInputChange = (e) => {
-    setBillingDetails({ ...billingDetails, [e.target.name]: e.target.value });
-  };
-
-  const handlePaymentSubmit = async (e) => {
-    e.preventDefault();
-    setLoading(true);
-
-    setTimeout(() => {
-      const order = {
-        user_id: user.id,
-        total_amount: total,
-        subtotal: subtotal,
-        tax_amount: taxAmount,
-        shipping_cost: shippingCost,
-        shipping_method: shippingMethod,
-        payment_method: 'stripe',
-        stripe_payment_id: `py_${Math.random().toString(36).substr(2, 9)}`,
-        items: cart.map(item => ({
-          product_id: item.product_id,
-          quantity: item.quantity,
-          price: calculateItemPrice(item)
-        }))
-      };
-
-      dbOrders.create(order);
-
-      if (user.account_type === 'wholesale') {
-        const totalUnits = cart.reduce((sum, item) => sum + item.quantity, 0);
-        dbWholesale.updateUnits(user.id, totalUnits);
-      }
-
-      clearCart();
-      setLoading(false);
-      setStep(3);
-      toast({ title: "Order Placed Successfully", description: "Confirmation email sent." });
-    }, 2000);
   };
 
   const renderShippingStep = () => (
@@ -136,90 +309,30 @@ const Checkout = () => {
         <CreditCard className="w-5 h-5" /> Payment Details
       </h2>
 
-      <form onSubmit={handlePaymentSubmit} className="space-y-4">
-        <div className="p-4 bg-gray-50 rounded-lg border border-gray-200 mb-6">
-          <p className="text-sm text-gray-500 mb-2 flex items-center gap-1"><Lock className="w-3 h-3" /> Secure Stripe Transaction</p>
+      <Elements stripe={stripePromise}>
+        <CheckoutForm
+          total={total}
+          shippingMethod={shippingMethod}
+          onSuccess={() => setStep(3)}
+        />
+      </Elements>
 
-          <div className="space-y-4">
-            <div>
-              <label className="block text-xs font-medium text-gray-700 mb-1">Card Number</label>
-              <input
-                type="text"
-                name="cardNumber"
-                placeholder="0000 0000 0000 0000"
-                className="w-full p-2 border rounded font-mono"
-                required
-              />
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-xs font-medium text-gray-700 mb-1">Expiry</label>
-                <input type="text" name="expiry" placeholder="MM/YY" className="w-full p-2 border rounded" required />
-              </div>
-              <div>
-                <label className="block text-xs font-medium text-gray-700 mb-1">CVC</label>
-                <input type="text" name="cvc" placeholder="123" className="w-full p-2 border rounded" required />
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <h3 className="font-bold text-[#0A1F44] mb-2">Billing Address</h3>
-        <div className="space-y-3">
-          <input
-            type="text" name="name"
-            value={billingDetails.name} onChange={handleInputChange}
-            placeholder="Full Name" className="w-full p-2 border rounded" required
-          />
-          <input
-            type="text" name="address"
-            value={billingDetails.address} onChange={handleInputChange}
-            placeholder="Address Line 1" className="w-full p-2 border rounded" required
-          />
-          <div className="grid grid-cols-3 gap-3">
-            <input
-              type="text" name="city"
-              value={billingDetails.city} onChange={handleInputChange}
-              placeholder="City" className="w-full p-2 border rounded" required
-            />
-            <input
-              type="text" name="state"
-              value={billingDetails.state} onChange={handleInputChange}
-              placeholder="State" className="w-full p-2 border rounded" required
-            />
-            <input
-              type="text" name="zip"
-              value={billingDetails.zip} onChange={handleInputChange}
-              placeholder="ZIP" className="w-full p-2 border rounded" required
-            />
-          </div>
-        </div>
-
-        <div className="mt-6 space-y-2 pt-4 border-t">
-          <div className="flex justify-between font-bold text-lg">
-            <span>Total to Pay</span>
-            <span>${total.toFixed(2)}</span>
-          </div>
-        </div>
-
-        <div className="flex gap-3 mt-6">
-          <Button type="button" variant="outline" onClick={() => setStep(1)}>Back</Button>
-          <Button
-            type="submit"
-            className="flex-1 bg-[#0A1F44] text-white hover:bg-[#C9A227] transition-all duration-300"
-            disabled={loading}
-          >
-            {loading ? 'Processing...' : `Pay $${total.toFixed(2)}`}
-          </Button>
-        </div>
-      </form>
+      <Button
+        type="button"
+        variant="outline"
+        onClick={() => setStep(1)}
+        className="w-full mt-4"
+      >
+        Back to Shipping
+      </Button>
     </motion.div>
   );
 
   const renderSuccessStep = () => (
     <div className="text-center py-12">
       <motion.div
-        initial={{ scale: 0 }} animate={{ scale: 1 }}
+        initial={{ scale: 0 }}
+        animate={{ scale: 1 }}
         className="w-20 h-20 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto mb-6"
       >
         <CheckCircle className="w-10 h-10" />
@@ -258,7 +371,7 @@ const Checkout = () => {
                   {cart.map(item => (
                     <div key={item.id} className="flex justify-between items-center">
                       <div className="flex items-center gap-2">
-                        <img src={item.product.image_url} alt="" className="w-8 h-8 object-cover rounded" />
+                        <img src={item.product.imageUrl} alt="" className="w-8 h-8 object-cover rounded" />
                         <span>{item.quantity}x {item.product.name}</span>
                       </div>
                       <span className="font-medium">${(calculateItemPrice(item) * item.quantity).toFixed(2)}</span>

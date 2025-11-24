@@ -15,7 +15,6 @@ import ForgotPassword from '@/pages/ForgotPassword';
 import ResetPassword from '@/pages/ResetPassword';
 import { Toaster } from '@/components/ui/toaster';
 import { AuthProvider } from '@/contexts/AuthContext';
-import { initDB } from '@/lib/db';
 import { GoogleOAuthProvider } from '@react-oauth/google';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { Helmet } from 'react-helmet';
@@ -29,9 +28,6 @@ import ContactMessages from '@/pages/admin/ContactMessages';
 import ProductManagement from '@/pages/admin/ProductManagement';
 
 function App() {
-  // useEffect(() => {
-  //   initDB();
-  // }, []);
 
   return (
     <GoogleOAuthProvider clientId={import.meta.env.VITE_GOOGLE_CLIENT_ID}>

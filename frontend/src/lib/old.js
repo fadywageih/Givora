@@ -19,114 +19,114 @@ const TABLES = {
 export const initDB = () => {
   if (!localStorage.getItem(TABLES.PRODUCTS)) {
     const initialProducts = [
-      { 
-        id: 1, 
-        name: 'Premium Tissue Rolls', 
-        category: 'Tissue', 
+      {
+        id: 1,
+        name: 'Premium Tissue Rolls',
+        category: 'Tissue',
         description: 'High quality 2-ply tissue rolls suitable for commercial use.',
-        sku: 'TIS-001', 
-        moq: 100, 
-        retail_price: 24.99, 
-        wholesale_price: 18.99, 
-        stock_quantity: 5000, 
+        sku: 'TIS-001',
+        moq: 100,
+        retail_price: 24.99,
+        wholesale_price: 18.99,
+        stock_quantity: 5000,
         image_url: 'https://images.unsplash.com/photo-1584634731339-252c581abfc5?auto=format&fit=crop&q=80&w=400',
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString()
       },
-      { 
-        id: 2, 
-        name: 'Commercial Paper Towels', 
-        category: 'Paper Towels', 
+      {
+        id: 2,
+        name: 'Commercial Paper Towels',
+        category: 'Paper Towels',
         description: 'Absorbent and durable paper towels for high-traffic areas.',
-        sku: 'PT-002', 
-        moq: 50, 
-        retail_price: 32.99, 
-        wholesale_price: 24.99, 
-        stock_quantity: 3000, 
+        sku: 'PT-002',
+        moq: 50,
+        retail_price: 32.99,
+        wholesale_price: 24.99,
+        stock_quantity: 3000,
         image_url: 'https://images.unsplash.com/photo-1617347454431-f49d7ff5c3b1?auto=format&fit=crop&q=80&w=400',
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString()
       },
-      { 
-        id: 3, 
-        name: 'Nitrile Gloves Medium', 
-        category: 'Gloves', 
+      {
+        id: 3,
+        name: 'Nitrile Gloves Medium',
+        category: 'Gloves',
         description: 'Powder-free nitrile exam gloves, medium size.',
-        sku: 'GLV-003', 
-        moq: 200, 
-        retail_price: 45.99, 
-        wholesale_price: 34.99, 
-        stock_quantity: 10000, 
+        sku: 'GLV-003',
+        moq: 200,
+        retail_price: 45.99,
+        wholesale_price: 34.99,
+        stock_quantity: 10000,
         image_url: 'https://images.unsplash.com/photo-1584744982491-665216d95f8b?auto=format&fit=crop&q=80&w=400',
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString()
       },
-      { 
-        id: 4, 
-        name: 'Heavy Duty Garbage Bags', 
-        category: 'Garbage Bags', 
+      {
+        id: 4,
+        name: 'Heavy Duty Garbage Bags',
+        category: 'Garbage Bags',
         description: 'Tear-resistant heavy duty trash bags for industrial use.',
-        sku: 'GB-004', 
-        moq: 150, 
-        retail_price: 28.99, 
-        wholesale_price: 21.99, 
-        stock_quantity: 4000, 
+        sku: 'GB-004',
+        moq: 150,
+        retail_price: 28.99,
+        wholesale_price: 21.99,
+        stock_quantity: 4000,
         image_url: 'https://images.unsplash.com/photo-1622161687343-828e5422501b?auto=format&fit=crop&q=80&w=400',
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString()
       },
-      { 
-        id: 5, 
-        name: 'Disposable Underpads', 
-        category: 'Underpads', 
+      {
+        id: 5,
+        name: 'Disposable Underpads',
+        category: 'Underpads',
         description: 'Highly absorbent disposable underpads for protection.',
-        sku: 'UND-005', 
-        moq: 100, 
-        retail_price: 38.99, 
-        wholesale_price: 29.99, 
-        stock_quantity: 2000, 
+        sku: 'UND-005',
+        moq: 100,
+        retail_price: 38.99,
+        wholesale_price: 29.99,
+        stock_quantity: 2000,
         image_url: 'https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?auto=format&fit=crop&q=80&w=400',
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString()
       },
-      { 
-        id: 6, 
-        name: 'Paper Coffee Cups', 
-        category: 'Cups', 
+      {
+        id: 6,
+        name: 'Paper Coffee Cups',
+        category: 'Cups',
         description: 'Double-wall paper cups suitable for hot beverages.',
-        sku: 'CUP-006', 
-        moq: 300, 
-        retail_price: 19.99, 
-        wholesale_price: 14.99, 
-        stock_quantity: 15000, 
+        sku: 'CUP-006',
+        moq: 300,
+        retail_price: 19.99,
+        wholesale_price: 14.99,
+        stock_quantity: 15000,
         image_url: 'https://images.unsplash.com/photo-1577937927133-66ef06acdf18?auto=format&fit=crop&q=80&w=400',
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString()
       },
-      { 
-        id: 7, 
-        name: 'Kraft Paper Bags Large', 
-        category: 'Paper Bags', 
+      {
+        id: 7,
+        name: 'Kraft Paper Bags Large',
+        category: 'Paper Bags',
         description: 'Eco-friendly large kraft paper bags with handles.',
-        sku: 'BAG-007', 
-        moq: 200, 
-        retail_price: 22.99, 
-        wholesale_price: 16.99, 
-        stock_quantity: 8000, 
+        sku: 'BAG-007',
+        moq: 200,
+        retail_price: 22.99,
+        wholesale_price: 16.99,
+        stock_quantity: 8000,
         image_url: 'https://images.unsplash.com/photo-1598532163257-ae3c6b2524b6?auto=format&fit=crop&q=80&w=400',
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString()
       },
-      { 
-        id: 8, 
-        name: 'Premium Facial Tissue', 
-        category: 'Tissue', 
+      {
+        id: 8,
+        name: 'Premium Facial Tissue',
+        category: 'Tissue',
         description: 'Soft and gentle facial tissues in box packaging.',
-        sku: 'TIS-008', 
-        moq: 150, 
-        retail_price: 26.99, 
-        wholesale_price: 19.99, 
-        stock_quantity: 4500, 
+        sku: 'TIS-008',
+        moq: 150,
+        retail_price: 26.99,
+        wholesale_price: 19.99,
+        stock_quantity: 4500,
         image_url: 'https://images.unsplash.com/photo-1583947215259-38e31be8751f?auto=format&fit=crop&q=80&w=400',
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString()
@@ -145,12 +145,12 @@ export const dbUsers = {
   create: (userData) => {
     const users = getTable(TABLES.USERS);
     if (users.find(u => u.email === userData.email)) throw new Error('Email already exists');
-    
+
     const newUser = {
       id: crypto.randomUUID(),
       email: userData.email,
       password_hash: userData.password_hash,
-      first_name: userData.first_name || '', 
+      first_name: userData.first_name || '',
       last_name: userData.last_name || '',
       phone: userData.phone || '',
       address: userData.address || '',
@@ -176,7 +176,7 @@ export const dbUsers = {
   verifyEmail: (email) => {
     const users = getTable(TABLES.USERS);
     const user = users.find(u => u.email === email);
-    if(user) {
+    if (user) {
       user.is_verified = true;
       user.updated_at = new Date().toISOString();
       setTable(TABLES.USERS, users);
@@ -258,7 +258,7 @@ export const dbCart = {
   addItem: (userId, product, quantity) => {
     const cart = getTable(TABLES.CART);
     const existingItemIndex = cart.findIndex(item => item.user_id === userId && item.product_id === product.id);
-    
+
     if (existingItemIndex >= 0) {
       cart[existingItemIndex].quantity += quantity;
       cart[existingItemIndex].updated_at = new Date().toISOString();
@@ -308,7 +308,7 @@ export const dbOrders = {
     const orderItems = getTable(TABLES.ORDER_ITEMS);
 
     const newOrderId = crypto.randomUUID();
-    
+
     // Create Order Record
     const newOrder = {
       id: newOrderId,
@@ -319,7 +319,7 @@ export const dbOrders = {
       tax_amount: orderData.tax_amount,
       shipping_cost: orderData.shipping_cost,
       shipping_method: orderData.shipping_method,
-      status: 'pending', 
+      status: 'pending',
       payment_method: orderData.payment_method,
       stripe_payment_id: orderData.stripe_payment_id,
       created_at: new Date().toISOString(),
@@ -349,7 +349,7 @@ export const dbOrders = {
   getByUserId: (userId) => {
     const orders = getTable(TABLES.ORDERS).filter(o => o.user_id === userId).sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
     const orderItems = getTable(TABLES.ORDER_ITEMS);
-    
+
     // Join items manually for simulation
     return orders.map(order => ({
       ...order,
@@ -397,7 +397,7 @@ export const dbWholesale = {
     const apps = getTable(TABLES.WHOLESALE_APPS);
     const index = apps.findIndex(a => a.id === appId);
     if (index === -1) return;
-    
+
     apps[index].approval_status = status;
     apps[index].updated_at = new Date().toISOString();
     setTable(TABLES.WHOLESALE_APPS, apps);

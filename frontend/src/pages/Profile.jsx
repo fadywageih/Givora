@@ -4,9 +4,8 @@ import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/components/ui/use-toast';
-import { dbOrders } from '@/lib/db';
 import { User, Package, Edit2, Save, X } from 'lucide-react';
-
+import { ordersAPI } from '../lib/api';
 const Profile = () => {
   const { user, updateUserProfile, wholesaleDetails, loading } = useAuth();
   const { toast } = useToast();
@@ -19,7 +18,9 @@ const Profile = () => {
     if (loading) return;
     if (user) {
       console.log(user);
-      setOrders(dbOrders.getByUserId(user.id));
+      ordersAPI.getAll().then((res) => {
+        setOrders(res.data.orders);
+      });
       setFormData({
         firstName: user.firstName,
         lastName: user.lastName,

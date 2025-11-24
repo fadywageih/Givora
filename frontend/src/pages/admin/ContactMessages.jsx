@@ -1,10 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { Helmet } from 'react-helmet';
-import { dbContactMessages } from '@/lib/db';
 import { Button } from '@/components/ui/button';
 import { Trash2, Mail } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
-
+import { adminAPI } from '@/lib/api';
 const ContactMessages = () => {
   const [messages, setMessages] = useState([]);
   const { toast } = useToast();
@@ -13,30 +12,48 @@ const ContactMessages = () => {
     loadMessages();
   }, []);
 
-  const loadMessages = () => {
-    setMessages(dbContactMessages.getAll());
+  const loadMessages = async () => {
+    try {
+      const res = await adminAPI.getMessages();
+      console.log(res);
+      setMessages(res.data.messages);
+    } catch (error) {
+      console.error(error);
+    }
   };
 
   const handleMarkRead = (id) => {
-    dbContactMessages.markRead(id);
-    loadMessages();
+    try {
+      adminAPI.markRead(id);
+      loadMessages();
+    } catch (error) {
+      console.error(error);
+    }
   };
 
   const handleDelete = (id) => {
-    dbContactMessages.delete(id);
-    loadMessages();
-    toast({ title: "Deleted", description: "Message deleted." });
+    try {
+      adminAPI.deleteMessage(id);
+      loadMessages();
+      toast({ title: "Deleted", description: "Message deleted." });
+    } catch (error) {
+      console.error(error);
+    }
   };
 
   const handleReply = (email) => {
-    window.location.href = `mailto:${email}`;
+    try {
+      window.location.href = `mailto:${email}`;
+    } catch (error) {
+      console.error(error);
+    }
   };
 
   return (
     <>
       <Helmet><title>Messages - Admin</title></Helmet>
       <h1 className="text-2xl font-bold text-[#0A1F44] mb-6">Contact Messages</h1>
-      
+
       <div className="grid gap-4">
         {messages.map(msg => (
           <div key={msg.id} className={`bg-white p-6 rounded-lg shadow border-l-4 ${msg.is_read ? 'border-gray-300' : 'border-[#C9A227]'}`}>
@@ -57,7 +74,7 @@ const ContactMessages = () => {
             </div>
             <p className="text-gray-800 bg-gray-50 p-3 rounded mt-2">{msg.message}</p>
             {!msg.is_read && (
-              <button 
+              <button
                 onClick={() => handleMarkRead(msg.id)}
                 className="text-sm text-[#C9A227] hover:underline mt-2"
               >
