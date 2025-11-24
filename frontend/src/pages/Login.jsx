@@ -6,16 +6,17 @@ import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/components/ui/use-toast';
 import { Mail } from 'lucide-react';
+import { authAPI } from '@/lib/api';
 
 const Login = () => {
   const navigate = useNavigate();
   const { login, googleLogin, register, verifyEmail } = useAuth();
   const { toast } = useToast();
   const [isLogin, setIsLogin] = useState(true);
-  
+
   const [showVerification, setShowVerification] = useState(false);
   const [verificationEmail, setVerificationEmail] = useState('');
-  
+
   const [formData, setFormData] = useState({
     email: '',
     password: '',
@@ -149,9 +150,9 @@ const Login = () => {
           </h1>
 
           <div className="mb-6">
-            <Button 
+            <Button
               type="button"
-              variant="outline" 
+              variant="outline"
               className="w-full flex items-center justify-center gap-2 border-[#D9DFE7] hover:bg-gray-50"
               onClick={handleGoogleLogin}
             >
@@ -176,14 +177,14 @@ const Login = () => {
           <form onSubmit={handleSubmit} className="space-y-6">
             {!isLogin && (
               <div className="grid grid-cols-2 gap-4">
-                 <div>
-                    <label className="block text-sm font-medium text-[#0A1F44] mb-2">First Name</label>
-                    <input type="text" name="first_name" value={formData.first_name} onChange={handleChange} required className="w-full px-4 py-2 border border-[#D9DFE7] rounded-lg" />
-                 </div>
-                 <div>
-                    <label className="block text-sm font-medium text-[#0A1F44] mb-2">Last Name</label>
-                    <input type="text" name="last_name" value={formData.last_name} onChange={handleChange} required className="w-full px-4 py-2 border border-[#D9DFE7] rounded-lg" />
-                 </div>
+                <div>
+                  <label className="block text-sm font-medium text-[#0A1F44] mb-2">First Name</label>
+                  <input type="text" name="first_name" value={formData.first_name} onChange={handleChange} required className="w-full px-4 py-2 border border-[#D9DFE7] rounded-lg" />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-[#0A1F44] mb-2">Last Name</label>
+                  <input type="text" name="last_name" value={formData.last_name} onChange={handleChange} required className="w-full px-4 py-2 border border-[#D9DFE7] rounded-lg" />
+                </div>
               </div>
             )}
 
@@ -265,11 +266,11 @@ const Login = () => {
               {isLogin ? 'Need an account? Register here' : 'Already have an account? Login here'}
             </button>
             {isLogin && (
-               <Link to="/forgot-password">
-                 <button className="text-[#0A1F44]/60 hover:text-[#0A1F44] text-xs underline">
-                   Forgot Password?
-                 </button>
-               </Link>
+              <Link to="/forgot-password">
+                <button className="text-[#0A1F44]/60 hover:text-[#0A1F44] text-xs underline">
+                  Forgot Password?
+                </button>
+              </Link>
             )}
           </div>
         </motion.div>

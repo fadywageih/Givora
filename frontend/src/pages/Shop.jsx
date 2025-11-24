@@ -5,7 +5,7 @@ import { ShoppingCart, Filter, Tag } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/components/ui/use-toast';
-import { dbProducts } from '@/lib/db';
+import { productsAPI } from '@/lib/api';
 
 const Shop = () => {
   const { user, getDiscountRate, addToCart } = useAuth();
@@ -14,26 +14,29 @@ const Shop = () => {
   const [products, setProducts] = useState([]);
 
   useEffect(() => {
-    setProducts(dbProducts.getAll());
+    productsAPI.getAll().then(response => {
+      console.log('API Response:', response);
+      setProducts(response.data.products || []);
+    });
   }, []);
 
   const categories = ['all', 'Tissue', 'Paper Towels', 'Gloves', 'Garbage Bags', 'Underpads', 'Cups', 'Paper Bags'];
 
-  const filteredProducts = selectedCategory === 'all' 
-    ? products 
+  const filteredProducts = selectedCategory === 'all'
+    ? products
     : products.filter(p => p.category === selectedCategory);
 
   const isWholesale = user?.account_type === 'wholesale' && user?.approved;
   const volumeDiscount = getDiscountRate(); // 0.10 if applicable
 
   const calculatePrice = (product) => {
-    let price = isWholesale ? product.wholesale_price : product.retail_price;
-    
+    let price = isWholesale ? product.wholesalePrice : product.wholesalePrice;
+
     // Apply additional volume discount if applicable
     if (isWholesale && volumeDiscount > 0) {
       price = price * (1 - volumeDiscount);
     }
-    
+
     return price.toFixed(2);
   };
 
@@ -67,8 +70,8 @@ const Shop = () => {
                 key={category}
                 onClick={() => setSelectedCategory(category)}
                 variant={selectedCategory === category ? 'default' : 'outline'}
-                className={selectedCategory === category 
-                  ? 'bg-[#0A1F44] text-white hover:bg-[#0A1F44]/90' 
+                className={selectedCategory === category
+                  ? 'bg-[#0A1F44] text-white hover:bg-[#0A1F44]/90'
                   : 'border-[#0A1F44] text-[#0A1F44] hover:bg-[#0A1F44] hover:text-white'}
               >
                 {category === 'all' ? 'All Products' : category}
@@ -97,12 +100,12 @@ const Shop = () => {
               className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-xl transition-shadow flex flex-col"
             >
               <div className="bg-white h-48 relative overflow-hidden group">
-                <img 
-                  src={product.image_url} 
+                <img
+                  src={product.imageUrl}
                   alt={product.name}
                   className="w-full h-full object-contain p-4 transition-transform duration-300 group-hover:scale-105"
                 />
-                {product.stock_quantity < 1000 && (
+                {product.stockQuantity < 1000 && (
                   <span className="absolute top-2 right-2 bg-red-500 text-white text-xs px-2 py-1 rounded-full">
                     Low Stock
                   </span>
@@ -118,7 +121,7 @@ const Shop = () => {
                 <p className="text-xs text-[#0A1F44]/50 mb-3">
                   SKU: {product.sku}
                 </p>
-                
+
                 <div className="mt-auto">
                   <div className="flex items-baseline gap-2 mb-2">
                     <span className="text-2xl font-bold text-[#0A1F44]">
@@ -126,14 +129,14 @@ const Shop = () => {
                     </span>
                     {isWholesale && (
                       <span className="text-sm text-[#0A1F44]/50 line-through">
-                        ${product.retail_price}
+                        ${product.retailPrice}
                       </span>
                     )}
                   </div>
                   <p className="text-xs text-[#0A1F44]/60 mb-4">
                     MOQ: {product.moq} units
                   </p>
-                  
+
                   <Button
                     onClick={() => addToCart(product)}
                     className="w-full bg-[#0A1F44] hover:bg-[#0A1F44]/90 text-white"

@@ -5,21 +5,20 @@ import { Building2, CheckCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/components/ui/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
-import { dbWholesale } from '@/lib/db';
+import { wholesaleAPI } from '@/lib/api';
 
 const WholesaleRegistration = () => {
   const { toast } = useToast();
   const { user } = useAuth();
   const [formData, setFormData] = useState({
-    business_name: '',
-    ein_number: '',
-    business_type: '',
+    businessName: '',
+    einNumber: '',
+    businessType: '',
     phone: '',
     address: '',
     city: '',
     state: '',
-    zip: '',
-    description: '' // extra field for context, not in main table schema but useful
+    zip: ''
   });
 
   const handleChange = (e) => {
@@ -29,9 +28,9 @@ const WholesaleRegistration = () => {
     });
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
     if (!user) {
       toast({
         title: "Authentication Required",
@@ -42,31 +41,30 @@ const WholesaleRegistration = () => {
     }
 
     try {
-      dbWholesale.create({
-        user_id: user.id,
-        ...formData
-      });
+      const response = await wholesaleAPI.apply(formData);
 
-      toast({
-        title: "Application Submitted",
-        description: "Thank you for your interest. Our team will review your application and contact you within 2-3 business days.",
-      });
+      if (response.success) {
+        toast({
+          title: "Application Submitted",
+          description: "Thank you for your interest. Our team will review your application and contact you within 2-3 business days.",
+        });
 
-      setFormData({
-        business_name: '',
-        ein_number: '',
-        business_type: '',
-        phone: '',
-        address: '',
-        city: '',
-        state: '',
-        zip: '',
-        description: ''
-      });
+        setFormData({
+          businessName: '',
+          einNumber: '',
+          businessType: '',
+          phone: '',
+          address: '',
+          city: '',
+          state: '',
+          zip: ''
+        });
+      }
     } catch (error) {
+      console.error('Wholesale application error:', error);
       toast({
         title: "Submission Failed",
-        description: "There was an error submitting your application.",
+        description: error.message || "There was an error submitting your application.",
         variant: "destructive"
       });
     }
@@ -140,8 +138,8 @@ const WholesaleRegistration = () => {
                   </label>
                   <input
                     type="text"
-                    name="business_name"
-                    value={formData.business_name}
+                    name="businessName"
+                    value={formData.businessName}
                     onChange={handleChange}
                     required
                     className="w-full px-4 py-2 border border-[#D9DFE7] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#C9A227]"
@@ -155,8 +153,8 @@ const WholesaleRegistration = () => {
                     </label>
                     <input
                       type="text"
-                      name="ein_number"
-                      value={formData.ein_number}
+                      name="einNumber"
+                      value={formData.einNumber}
                       onChange={handleChange}
                       required
                       placeholder="XX-XXXXXXX"
@@ -169,8 +167,8 @@ const WholesaleRegistration = () => {
                       Business Type *
                     </label>
                     <select
-                      name="business_type"
-                      value={formData.business_type}
+                      name="businessType"
+                      value={formData.businessType}
                       onChange={handleChange}
                       required
                       className="w-full px-4 py-2 border border-[#D9DFE7] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#C9A227]"
@@ -257,20 +255,6 @@ const WholesaleRegistration = () => {
                       className="w-full px-4 py-2 border border-[#D9DFE7] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#C9A227]"
                     />
                   </div>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-[#0A1F44] mb-2">
-                    Additional Information
-                  </label>
-                  <textarea
-                    name="description"
-                    value={formData.description}
-                    onChange={handleChange}
-                    rows={4}
-                    placeholder="Tell us about your business and supply needs"
-                    className="w-full px-4 py-2 border border-[#D9DFE7] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#C9A227]"
-                  />
                 </div>
 
                 <Button

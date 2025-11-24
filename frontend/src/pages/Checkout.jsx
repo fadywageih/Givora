@@ -15,7 +15,7 @@ const Checkout = () => {
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
   const [shippingMethod, setShippingMethod] = useState('standard');
-  
+
   const [billingDetails, setBillingDetails] = useState({
     name: user?.first_name ? `${user.first_name} ${user.last_name}` : '',
     address: user?.address || '',
@@ -45,7 +45,7 @@ const Checkout = () => {
 
   const subtotal = cart.reduce((sum, item) => sum + (calculateItemPrice(item) * item.quantity), 0);
   const shippingCost = shippingMethod === 'express' ? 10.00 : 7.00;
-  const taxRate = 0.08; 
+  const taxRate = 0.08;
   const taxAmount = subtotal * taxRate;
   const total = subtotal + shippingCost + taxAmount;
 
@@ -79,9 +79,9 @@ const Checkout = () => {
           price: calculateItemPrice(item)
         }))
       };
-      
+
       dbOrders.create(order);
-      
+
       if (user.account_type === 'wholesale') {
         const totalUnits = cart.reduce((sum, item) => sum + item.quantity, 0);
         dbWholesale.updateUnits(user.id, totalUnits);
@@ -100,7 +100,7 @@ const Checkout = () => {
         <Truck className="w-5 h-5" /> Shipping Method
       </h2>
       <div className="space-y-4 mb-8">
-        <div 
+        <div
           onClick={() => setShippingMethod('standard')}
           className={`p-4 border rounded-lg cursor-pointer transition-colors flex justify-between items-center ${shippingMethod === 'standard' ? 'border-[#0A1F44] bg-blue-50' : 'border-gray-200'}`}
         >
@@ -110,7 +110,7 @@ const Checkout = () => {
           </div>
           <span className="font-bold text-[#0A1F44]">$7.00</span>
         </div>
-        <div 
+        <div
           onClick={() => setShippingMethod('express')}
           className={`p-4 border rounded-lg cursor-pointer transition-colors flex justify-between items-center ${shippingMethod === 'express' ? 'border-[#0A1F44] bg-blue-50' : 'border-gray-200'}`}
         >
@@ -121,8 +121,8 @@ const Checkout = () => {
           <span className="font-bold text-[#0A1F44]">$10.00</span>
         </div>
       </div>
-      <Button 
-        onClick={() => setStep(2)} 
+      <Button
+        onClick={() => setStep(2)}
         className="w-full bg-[#0A1F44] text-white hover:bg-[#C9A227] transition-all duration-300"
       >
         Continue to Payment
@@ -135,30 +135,30 @@ const Checkout = () => {
       <h2 className="text-xl font-bold text-[#0A1F44] mb-4 flex items-center gap-2">
         <CreditCard className="w-5 h-5" /> Payment Details
       </h2>
-      
+
       <form onSubmit={handlePaymentSubmit} className="space-y-4">
         <div className="p-4 bg-gray-50 rounded-lg border border-gray-200 mb-6">
-          <p className="text-sm text-gray-500 mb-2 flex items-center gap-1"><Lock className="w-3 h-3"/> Secure Stripe Transaction</p>
-          
+          <p className="text-sm text-gray-500 mb-2 flex items-center gap-1"><Lock className="w-3 h-3" /> Secure Stripe Transaction</p>
+
           <div className="space-y-4">
             <div>
-               <label className="block text-xs font-medium text-gray-700 mb-1">Card Number</label>
-               <input 
-                 type="text" 
-                 name="cardNumber"
-                 placeholder="0000 0000 0000 0000"
-                 className="w-full p-2 border rounded font-mono"
-                 required
-               />
+              <label className="block text-xs font-medium text-gray-700 mb-1">Card Number</label>
+              <input
+                type="text"
+                name="cardNumber"
+                placeholder="0000 0000 0000 0000"
+                className="w-full p-2 border rounded font-mono"
+                required
+              />
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div>
-                 <label className="block text-xs font-medium text-gray-700 mb-1">Expiry</label>
-                 <input type="text" name="expiry" placeholder="MM/YY" className="w-full p-2 border rounded" required />
+                <label className="block text-xs font-medium text-gray-700 mb-1">Expiry</label>
+                <input type="text" name="expiry" placeholder="MM/YY" className="w-full p-2 border rounded" required />
               </div>
               <div>
-                 <label className="block text-xs font-medium text-gray-700 mb-1">CVC</label>
-                 <input type="text" name="cvc" placeholder="123" className="w-full p-2 border rounded" required />
+                <label className="block text-xs font-medium text-gray-700 mb-1">CVC</label>
+                <input type="text" name="cvc" placeholder="123" className="w-full p-2 border rounded" required />
               </div>
             </div>
           </div>
@@ -166,47 +166,47 @@ const Checkout = () => {
 
         <h3 className="font-bold text-[#0A1F44] mb-2">Billing Address</h3>
         <div className="space-y-3">
-          <input 
-            type="text" name="name" 
+          <input
+            type="text" name="name"
             value={billingDetails.name} onChange={handleInputChange}
-            placeholder="Full Name" className="w-full p-2 border rounded" required 
+            placeholder="Full Name" className="w-full p-2 border rounded" required
           />
-          <input 
-            type="text" name="address" 
+          <input
+            type="text" name="address"
             value={billingDetails.address} onChange={handleInputChange}
-            placeholder="Address Line 1" className="w-full p-2 border rounded" required 
+            placeholder="Address Line 1" className="w-full p-2 border rounded" required
           />
           <div className="grid grid-cols-3 gap-3">
-            <input 
-              type="text" name="city" 
+            <input
+              type="text" name="city"
               value={billingDetails.city} onChange={handleInputChange}
-              placeholder="City" className="w-full p-2 border rounded" required 
+              placeholder="City" className="w-full p-2 border rounded" required
             />
-            <input 
-              type="text" name="state" 
+            <input
+              type="text" name="state"
               value={billingDetails.state} onChange={handleInputChange}
-              placeholder="State" className="w-full p-2 border rounded" required 
+              placeholder="State" className="w-full p-2 border rounded" required
             />
-            <input 
-              type="text" name="zip" 
+            <input
+              type="text" name="zip"
               value={billingDetails.zip} onChange={handleInputChange}
-              placeholder="ZIP" className="w-full p-2 border rounded" required 
+              placeholder="ZIP" className="w-full p-2 border rounded" required
             />
           </div>
         </div>
 
         <div className="mt-6 space-y-2 pt-4 border-t">
-           <div className="flex justify-between font-bold text-lg">
-             <span>Total to Pay</span>
-             <span>${total.toFixed(2)}</span>
-           </div>
+          <div className="flex justify-between font-bold text-lg">
+            <span>Total to Pay</span>
+            <span>${total.toFixed(2)}</span>
+          </div>
         </div>
 
         <div className="flex gap-3 mt-6">
           <Button type="button" variant="outline" onClick={() => setStep(1)}>Back</Button>
-          <Button 
-            type="submit" 
-            className="flex-1 bg-[#0A1F44] text-white hover:bg-[#C9A227] transition-all duration-300" 
+          <Button
+            type="submit"
+            className="flex-1 bg-[#0A1F44] text-white hover:bg-[#C9A227] transition-all duration-300"
             disabled={loading}
           >
             {loading ? 'Processing...' : `Pay $${total.toFixed(2)}`}
@@ -218,8 +218,8 @@ const Checkout = () => {
 
   const renderSuccessStep = () => (
     <div className="text-center py-12">
-      <motion.div 
-        initial={{ scale: 0 }} animate={{ scale: 1 }} 
+      <motion.div
+        initial={{ scale: 0 }} animate={{ scale: 1 }}
         className="w-20 h-20 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto mb-6"
       >
         <CheckCircle className="w-10 h-10" />
@@ -236,7 +236,7 @@ const Checkout = () => {
   return (
     <>
       <Helmet><title>Checkout - GIVORA</title></Helmet>
-      
+
       <div className="bg-[#0A1F44] text-white py-8">
         <div className="container mx-auto px-4">
           <h1 className="text-3xl font-bold">Checkout</h1>
@@ -258,20 +258,20 @@ const Checkout = () => {
                   {cart.map(item => (
                     <div key={item.id} className="flex justify-between items-center">
                       <div className="flex items-center gap-2">
-                         <img src={item.product.image_url} alt="" className="w-8 h-8 object-cover rounded" />
-                         <span>{item.quantity}x {item.product.name}</span>
+                        <img src={item.product.image_url} alt="" className="w-8 h-8 object-cover rounded" />
+                        <span>{item.quantity}x {item.product.name}</span>
                       </div>
                       <span className="font-medium">${(calculateItemPrice(item) * item.quantity).toFixed(2)}</span>
                     </div>
                   ))}
                 </div>
                 <div className="border-t pt-4 space-y-2 text-sm">
-                   <div className="flex justify-between"><span>Subtotal</span><span>${subtotal.toFixed(2)}</span></div>
-                   <div className="flex justify-between"><span>Shipping</span><span>${shippingCost.toFixed(2)}</span></div>
-                   <div className="flex justify-between"><span>Tax (8%)</span><span>${taxAmount.toFixed(2)}</span></div>
-                   <div className="flex justify-between font-bold text-lg text-[#0A1F44] border-t pt-2 mt-2">
-                     <span>Total</span><span>${total.toFixed(2)}</span>
-                   </div>
+                  <div className="flex justify-between"><span>Subtotal</span><span>${subtotal.toFixed(2)}</span></div>
+                  <div className="flex justify-between"><span>Shipping</span><span>${shippingCost.toFixed(2)}</span></div>
+                  <div className="flex justify-between"><span>Tax (8%)</span><span>${taxAmount.toFixed(2)}</span></div>
+                  <div className="flex justify-between font-bold text-lg text-[#0A1F44] border-t pt-2 mt-2">
+                    <span>Total</span><span>${total.toFixed(2)}</span>
+                  </div>
                 </div>
               </div>
             </div>
