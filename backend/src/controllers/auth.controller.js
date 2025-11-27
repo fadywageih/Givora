@@ -226,7 +226,7 @@ export const verifyEmail = async (req, res, next) => {
                 createdAt: true
             }
         });
-        await sendWelcomeEmail(updatedUser);
+        await sendWelcomeEmail(user);
         res.status(200).json({
             success: true,
             message: 'Email verified successfully',

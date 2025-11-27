@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
 import { useGoogleLogin } from '@react-oauth/google';
 import { useToast } from '@/components/ui/use-toast';
 import { authAPI, cartAPI, wholesaleAPI, adminAPI } from '@/lib/api';
@@ -126,14 +126,16 @@ export const AuthProvider = ({ children }) => {
     localStorage.removeItem('givora_admin_token');
   };
 
-  const [googleLoginResolver, setGoogleLoginResolver] = useState(null);
+  const googleLoginResolverRef = useRef(null);
 
   const loginWithGoogle = useGoogleLogin({
     flow: 'auth-code',
     onSuccess: async (codeResponse) => {
       try {
         const { code } = codeResponse;
+        console.log('Google code received:', code);
         const res = await authAPI.loginWithGoogle({ code });
+        console.log('Google login response:', res);
 
         if (res.success) {
           const { token, user: dbUser } = res.data;
@@ -142,27 +144,33 @@ export const AuthProvider = ({ children }) => {
           setUser(dbUser);
           refreshCart(dbUser.id);
 
-          if (googleLoginResolver) googleLoginResolver.resolve(dbUser);
+          if (googleLoginResolverRef.current) {
+            googleLoginResolverRef.current.resolve(dbUser);
+            googleLoginResolverRef.current = null;
+          }
         } else {
           throw new Error(res.message || 'Google login failed');
         }
       } catch (error) {
         console.error('Google Login Error:', error);
-        if (googleLoginResolver) googleLoginResolver.reject(error);
-      } finally {
-        setGoogleLoginResolver(null);
+        if (googleLoginResolverRef.current) {
+          googleLoginResolverRef.current.reject(error);
+          googleLoginResolverRef.current = null;
+        }
       }
     },
     onError: (error) => {
       console.error('Google Login Failed:', error);
-      if (googleLoginResolver) googleLoginResolver.reject(error);
-      setGoogleLoginResolver(null);
+      if (googleLoginResolverRef.current) {
+        googleLoginResolverRef.current.reject(error);
+        googleLoginResolverRef.current = null;
+      }
     }
   });
 
   const googleLogin = () => {
     return new Promise((resolve, reject) => {
-      setGoogleLoginResolver({ resolve, reject });
+      googleLoginResolverRef.current = { resolve, reject };
       loginWithGoogle();
     });
   };
