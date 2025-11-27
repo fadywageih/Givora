@@ -22,19 +22,19 @@ const ContactMessages = () => {
     }
   };
 
-  const handleMarkRead = (id) => {
+  const handleMarkRead = async(id) => {
     try {
-      adminAPI.markRead(id);
-      loadMessages();
+      await adminAPI.markMessageRead(id);
+      await loadMessages();
     } catch (error) {
       console.error(error);
     }
   };
 
-  const handleDelete = (id) => {
+  const handleDelete = async(id) => {
     try {
-      adminAPI.deleteMessage(id);
-      loadMessages();
+      await adminAPI.deleteMessage(id);
+      await loadMessages();
       toast({ title: "Deleted", description: "Message deleted." });
     } catch (error) {
       console.error(error);

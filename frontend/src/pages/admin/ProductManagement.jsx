@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Helmet } from 'react-helmet';
 import { adminAPI } from '@/lib/api';
 import { Button } from '@/components/ui/button';
-import { Plus, Edit, Trash2, Upload, X } from 'lucide-react';
+import { Plus, Edit, Trash2, Upload } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
 
 const ProductManagement = () => {
@@ -10,15 +10,15 @@ const ProductManagement = () => {
   const [isEditing, setIsEditing] = useState(false);
   const [currentProduct, setCurrentProduct] = useState(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(null);
-  const [selectedImage, setSelectedImage] = useState(null);
-  const [imagePreview, setImagePreview] = useState('');
+  const [selectedImages, setSelectedImages] = useState([]);
+  const [imagePreviews, setImagePreviews] = useState([]);
   const [uploading, setUploading] = useState(false);
   const { toast } = useToast();
 
   const initialForm = {
     name: '', category: '', sku: '', moq: 100,
     retailPrice: 0, wholesalePrice: 0, stockQuantity: 0,
-    imageUrl: '', cloudinaryId: ''
+    imageUrl: '', cloudinaryId: '', images: []
   };
   const [formData, setFormData] = useState(initialForm);
 
@@ -38,16 +38,17 @@ const ProductManagement = () => {
   const handleAddNew = () => {
     setFormData(initialForm);
     setCurrentProduct(null);
-    setSelectedImage(null);
-    setImagePreview('');
+    setSelectedImages([]);
+    setImagePreviews([]);
     setIsEditing(true);
   };
 
   const handleEdit = (product) => {
-    setFormData(product);
+    const images = product.images || (product.imageUrl ? [{ imageUrl: product.imageUrl, cloudinaryId: product.cloudinaryId || null }] : []);
+    setFormData({ ...product, images });
     setCurrentProduct(product);
-    setSelectedImage(null);
-    setImagePreview(product.imageUrl || '');
+    setSelectedImages([]);
+    setImagePreviews([]);
     setIsEditing(true);
   };
 
@@ -59,39 +60,46 @@ const ProductManagement = () => {
   };
 
   const handleImageSelect = (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      setSelectedImage(file);
-      // Create preview
+    const files = Array.from(e.target.files || []);
+    if (files.length < 3 || files.length > 5) {
+      toast({ title: 'Invalid Selection', description: 'Please select between 3 and 5 images.', variant: 'destructive' });
+    }
+    const limited = files.slice(0, 5);
+    setSelectedImages(limited);
+    // create previews
+    const readers = [];
+    const previews = [];
+    limited.forEach((file, idx) => {
       const reader = new FileReader();
+      readers.push(reader);
       reader.onloadend = () => {
-        setImagePreview(reader.result);
+        previews[idx] = reader.result;
+        if (previews.filter(Boolean).length === limited.length) {
+          setImagePreviews(previews);
+        }
       };
       reader.readAsDataURL(file);
-    }
+    });
   };
 
-  const handleImageUpload = async () => {
-    if (!selectedImage) return null;
+  const handleImagesUpload = async () => {
+    if (!selectedImages || selectedImages.length === 0) return [];
 
     setUploading(true);
     try {
       const formDataUpload = new FormData();
-      formDataUpload.append('image', selectedImage);
+      selectedImages.forEach((file) => formDataUpload.append('images', file));
 
-      const res = await adminAPI.uploadProductImage(formDataUpload);
-
+      const res = await adminAPI.uploadProductImages(formDataUpload);
       if (res.success) {
-        toast({ title: "Success", description: "Image uploaded successfully!" });
-        return {
-          imageUrl: res.data.imageUrl,
-          cloudinaryId: res.data.cloudinaryId || ''
-        };
+        toast({ title: 'Success', description: 'Images uploaded successfully!' });
+        return res.data.images || [];
       }
+      return [];
     } catch (error) {
       console.error(error);
-      toast({ title: "Error", description: "Failed to upload image", variant: "destructive" });
-      return null;
+      toast({ title: 'Error', description: 'Failed to upload images', variant: 'destructive' });
+      return [];
     } finally {
       setUploading(false);
     }
@@ -102,20 +110,33 @@ const ProductManagement = () => {
 
     try {
       let finalFormData = { ...formData };
-      console.log(finalFormData);
-      // Upload image first if selected
-      if (selectedImage) {
-        const imageData = await handleImageUpload();
-        console.log(imageData);
-        if (imageData) {
-          finalFormData = { ...finalFormData, ...imageData };
+      // Upload images first if selected
+      if (selectedImages && selectedImages.length > 0) {
+        const uploadedImages = await handleImagesUpload();
+        if (!uploadedImages.length || uploadedImages.length < 3) {
+          toast({ title: 'Error', description: 'Please upload 3–5 images.', variant: 'destructive' });
+          return;
         }
+        finalFormData = { ...finalFormData, images: uploadedImages };
+      }
+
+      // For updates, if user cleared previews but didn't select new images,
+      // avoid sending an empty images array (backend requires 3–5 when provided)
+      if (currentProduct && selectedImages.length === 0 && Array.isArray(finalFormData.images) && finalFormData.images.length === 0) {
+        const { images, ...rest } = finalFormData;
+        finalFormData = rest;
       }
 
       if (currentProduct) {
         await adminAPI.updateProduct(currentProduct.id, finalFormData);
         toast({ title: "Updated", description: "Product updated." });
       } else {
+        // Ensure images exist for creation
+        const imgs = finalFormData.images || [];
+        if (!imgs.length || imgs.length < 3) {
+          toast({ title: 'Missing Images', description: 'New products require 3–5 images.', variant: 'destructive' });
+          return;
+        }
         await adminAPI.createProduct(finalFormData);
         toast({ title: "Created", description: "New product added." });
       }
@@ -133,34 +154,26 @@ const ProductManagement = () => {
   };
 
   if (isEditing) {
-    return (
+      return (
       <div className="bg-white p-6 rounded-lg shadow max-w-3xl mx-auto">
         <h2 className="text-xl font-bold mb-6">{currentProduct ? 'Edit Product' : 'Add New Product'}</h2>
         <form onSubmit={handleSubmit} className="space-y-6">
           {/* Image Upload Section */}
           <div className="border-2 border-dashed border-gray-300 rounded-lg p-6">
-            <label className="block text-sm font-medium mb-2">Product Image</label>
-            <div className="flex items-center gap-4">
-              {imagePreview && (
-                <div className="relative">
-                  <img src={imagePreview} alt="Preview" className="w-32 h-32 object-cover rounded" />
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setSelectedImage(null);
-                      setImagePreview('');
-                      setFormData({ ...formData, imageUrl: '', cloudinaryId: '' });
-                    }}
-                    className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1"
-                  >
-                    <X className="w-4 h-4" />
-                  </button>
-                </div>
-              )}
+            <label className="block text-sm font-medium mb-2">Product Images (3–5)</label>
+            <div className="flex items-start gap-4">
+              <div className="flex flex-wrap gap-2">
+                {(imagePreviews.length > 0 ? imagePreviews : (formData.images || []).map(i => i.imageUrl)).map((src, idx) => (
+                  <div key={idx} className="relative">
+                    <img src={src} alt="Preview" className="w-24 h-24 object-cover rounded border" />
+                  </div>
+                ))}
+              </div>
               <div className="flex-1">
                 <input
                   type="file"
                   accept="image/*"
+                  multiple
                   onChange={handleImageSelect}
                   className="hidden"
                   id="image-upload"
@@ -170,9 +183,17 @@ const ProductManagement = () => {
                   className="cursor-pointer inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
                 >
                   <Upload className="w-4 h-4 mr-2" />
-                  {selectedImage ? 'Change Image' : 'Upload Image'}
+                  {selectedImages.length ? 'Change Images' : 'Upload Images'}
                 </label>
-                <p className="text-xs text-gray-500 mt-2">PNG, JPG up to 10MB</p>
+                <div className="mt-2 flex gap-2">
+                  {selectedImages.length > 0 && (
+                    <button type="button" className="text-xs underline" onClick={() => { setSelectedImages([]); setImagePreviews([]); }}>Clear selection</button>
+                  )}
+                  {(formData.images || []).length > 0 && selectedImages.length === 0 && (
+                    <button type="button" className="text-xs underline" onClick={() => { setFormData({ ...formData, images: [] }); }}>Remove existing images</button>
+                  )}
+                </div>
+                <p className="text-xs text-gray-500 mt-2">PNG, JPG, WEBP. Select 3–5 images.</p>
               </div>
             </div>
           </div>
@@ -244,7 +265,7 @@ const ProductManagement = () => {
             {products.map(p => (
               <tr key={p.id} className="hover:bg-gray-50">
                 <td className="p-4 flex items-center space-x-3">
-                  <img src={p.imageUrl} alt="" className="w-10 h-10 rounded object-cover bg-gray-200" />
+                  <img src={(p.images && p.images[0]?.imageUrl) || p.imageUrl} alt="" className="w-10 h-10 rounded object-cover bg-gray-200" />
                   <span className="font-medium">{p.name}</span>
                 </td>
                 <td className="p-4 text-sm">

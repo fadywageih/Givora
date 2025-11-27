@@ -248,12 +248,23 @@ export const AuthProvider = ({ children }) => {
       });
       return;
     }
+
+    // Validate MOQ
+    if (quantity < product.moq) {
+      toast({
+        title: "Minimum Order Quantity",
+        description: `Minimum order quantity is ${product.moq} units.`,
+        variant: "destructive"
+      });
+      return;
+    }
+
     try {
       await cartAPI.add(product.id, quantity);
       refreshCart(user.id);
       toast({
         title: "Added to Cart",
-        description: `${product.name} added to your cart.`
+        description: `${quantity} unit(s) of ${product.name} added to your cart.`
       });
     } catch (error) {
       console.error("Add to cart error:", error);

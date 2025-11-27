@@ -77,3 +77,39 @@ export const sendPasswordResetEmail = async (user, resetToken) => {
         console.error('Error sending password reset email:', error);
     }
 };
+
+export const sendWelcomeEmail = async (user) => {
+    try {
+        // Create a transporter object using SMTP transport
+        const transporter = nodemailer.createTransport({
+            service: 'Gmail',  // You can use other services like Yahoo, Outlook, etc.
+            auth: {
+                user: process.env.EMAIL_USER, // Your email address
+                pass: process.env.EMAIL_PASS  // Your email password
+            }
+        });
+
+        // Set up email data
+
+        const mailOptions = {
+            from: 'imina3951@gmail.com', // Sender address
+            to: user.email,  // Recipient's email
+            subject: 'Welcome to GIVORA',  // Subject line
+            html: `
+                <h1>Welcome to GIVORA</h1>
+                <p>Hi ${user.firstName + ' ' + user.lastName},</p>
+                
+                <p>Thank you for signing up for GIVORA! We are excited to have you on board.</p>
+                
+                <p>Thank you,<br/>GIVORA Team</p>
+                
+            ` // HTML body content
+        };
+
+        // Send email
+        await transporter.sendMail(mailOptions);
+        console.log('Welcome email sent to:', user.email);
+    } catch (error) {
+        console.error('Error sending welcome email:', error);
+    }
+};

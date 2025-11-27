@@ -249,7 +249,14 @@ export const getAllOrders = async (req, res, next) => {
                     select: {
                         email: true,
                         firstName: true,
-                        lastName: true
+                        lastName: true,
+                        phone: true,
+                        accountType:true,
+                        address:true,
+                        approved:true,
+                        isVerified:true,
+                        createdAt:true,
+                        
                     }
                 },
                 items: {

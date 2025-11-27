@@ -15,12 +15,12 @@ export const config = {
   // Admin Credentials
   adminAccounts: [
     {
-      email: process.env.ADMIN_EMAIL_1 || 'fadyW@geih@gmail.givora.com',
-      password: process.env.ADMIN_PASSWORD_1 || 'PaSS@@7821'
+      email: process.env.ADMIN_EMAIL_1.trim().toLowerCase() || 'fadyW@geih@gmail.givora.com',
+      password: process.env.ADMIN_PASSWORD_1.trim() || 'PaSS@@7821'
     },
     {
-      email: process.env.ADMIN_EMAIL_2 || 'FADyAdmin@gmail.givora.eg',
-      password: process.env.ADMIN_PASSWORD_2 || 'Test@1#5'
+      email: process.env.ADMIN_EMAIL_2.trim().toLowerCase() || 'FADyAdmin@gmail.givora.eg',
+      password: process.env.ADMIN_PASSWORD_2.trim() || 'Test@1#5'
     }
   ],
 

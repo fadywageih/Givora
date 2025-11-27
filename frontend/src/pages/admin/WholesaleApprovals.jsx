@@ -23,14 +23,14 @@ const WholesaleApprovals = () => {
     }
   };
 
-  const handleStatus = (id, status) => {
+  const handleStatus = async(id, status) => {
     try {
       if (status === 'approved') {
-        adminAPI.approveWholesale(id);
+        await adminAPI.approveWholesale(id);
       } else {
-        adminAPI.rejectWholesale(id);
+        await adminAPI.rejectWholesale(id);
       }
-      loadApps();
+      await loadApps();
       toast({
         title: `Application ${status === 'approved' ? 'Approved' : 'Rejected'}`,
         description: `User status updated.`

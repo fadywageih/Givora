@@ -176,9 +176,21 @@ export const getOrders = async (req, res, next) => {
             orderBy: { createdAt: 'desc' }
         });
 
+        // Format product images
+        const formattedOrders = orders.map(order => ({
+            ...order,
+            items: order.items.map(item => ({
+                ...item,
+                product: {
+                    ...item.product,
+                    images: item.product.images ? JSON.parse(item.product.images) : []
+                }
+            }))
+        }));
+
         res.json({
             success: true,
-            data: { orders }
+            data: { orders: formattedOrders }
         });
     } catch (error) {
         next(error);

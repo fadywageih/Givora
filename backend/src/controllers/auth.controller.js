@@ -5,6 +5,7 @@ import { config } from '../config/env.js';
 import crypto from 'crypto';
 import { sendVerificationEmail } from '../utils/email.js';
 import { sendPasswordResetEmail } from '../utils/email.js';
+import { sendWelcomeEmail } from '../utils/email.js';
 
 /**
  * Register new user
@@ -20,10 +21,11 @@ const generateVerificationCode = () => {
 export const register = async (req, res, next) => {
     try {
         const { email, password, accountType, firstName, lastName, phone, address } = req.body;
+        const normalizedEmail = email?.trim().toLowerCase();
 
         // Check if user already exists
         const existingUser = await prisma.user.findUnique({
-            where: { email }
+            where: { email: normalizedEmail }
         });
 
         if (existingUser) {
@@ -40,7 +42,7 @@ export const register = async (req, res, next) => {
         // Create user
         const user = await prisma.user.create({
             data: {
-                email,
+                email: normalizedEmail,
                 passwordHash,
                 accountType,
                 firstName: firstName || null,
@@ -86,14 +88,21 @@ export const register = async (req, res, next) => {
 export const login = async (req, res, next) => {
     try {
         const { email, password } = req.body;
+        const normalizedEmail = email?.trim().toLowerCase();
 
         // Find user
-        const user = await prisma.user.findUnique({
-            where: { email },
+        let user = await prisma.user.findUnique({
+            where: { email: normalizedEmail },
             include: {
                 wholesaleApplication: true
             }
         });
+        if (!user && normalizedEmail !== email) {
+            user = await prisma.user.findUnique({
+                where: { email },
+                include: { wholesaleApplication: true }
+            });
+        }
 
         if (!user) {
             return res.status(401).json({
@@ -170,16 +179,19 @@ export const login = async (req, res, next) => {
 export const verifyEmail = async (req, res, next) => {
     try {
         const { email, code } = req.body;
-        console.log(code);
-        console.log(email);
+        const normalizedEmail = email?.trim().toLowerCase();
+        const codeStr = String(code).trim();
 
-        if (!code || !email) {
+        if (!codeStr || !email) {
             return res.status(400).json({
                 success: false,
                 message: 'Missing code or email'
             });
         }
-        const user = await prisma.user.findUnique({ where: { email } });
+        let user = await prisma.user.findUnique({ where: { email: normalizedEmail } });
+        if (!user && normalizedEmail !== email) {
+            user = await prisma.user.findUnique({ where: { email } });
+        }
         if (!user) {
             return res.status(404).json({
                 success: false,
@@ -192,7 +204,7 @@ export const verifyEmail = async (req, res, next) => {
                 message: 'User already verified'
             });
         }
-        if (user.verificationCode !== code) {
+        if (user.verificationCode !== codeStr) {
             return res.status(400).json({
                 success: false,
                 message: 'Invalid verification code'
@@ -205,7 +217,7 @@ export const verifyEmail = async (req, res, next) => {
             });
         }
         const updatedUser = await prisma.user.update({
-            where: { email },
+            where: { email: user.email },
             data: { isVerified: true },
             select: {
                 id: true,
@@ -214,7 +226,7 @@ export const verifyEmail = async (req, res, next) => {
                 createdAt: true
             }
         });
-
+        await sendWelcomeEmail(updatedUser);
         res.status(200).json({
             success: true,
             message: 'Email verified successfully',
@@ -304,10 +316,14 @@ export const updateProfile = async (req, res, next) => {
 export const forgotPassword = async (req, res, next) => {
     try {
         const { email } = req.body;
+        const normalizedEmail = email?.trim().toLowerCase();
 
-        const user = await prisma.user.findUnique({
-            where: { email }
+        let user = await prisma.user.findUnique({
+            where: { email: normalizedEmail }
         });
+        if (!user && normalizedEmail !== email) {
+            user = await prisma.user.findUnique({ where: { email } });
+        }
 
         if (!user) {
             // Don't reveal if email exists
@@ -599,15 +615,17 @@ export const loginWithGoogle = async (req, res, next) => {
             });
         }
 
+        const normalizedEmail = email.trim().toLowerCase();
+
         let user = await prisma.user.findUnique({
-            where: { email }
+            where: { email: normalizedEmail }
         });
 
         if (!user) {
             // Create new user
             user = await prisma.user.create({
                 data: {
-                    email,
+                    email: normalizedEmail,
                     passwordHash: 'GOOGLE_AUTH_NO_PASSWORD', // Placeholder
                     firstName: firstName || '',
                     lastName: lastName || '',

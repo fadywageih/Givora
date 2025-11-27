@@ -186,6 +186,13 @@ export const adminAPI = {
             }
         });
     },
+    uploadProductImages: (formData) => {
+        return api.post('/products/upload-images', formData, {
+            headers: {
+                'Content-Type': 'multipart/form-data'
+            }
+        });
+    },
 
     // Users
     getUsers: (accountType) => api.get('/admin/users', { params: { accountType } })

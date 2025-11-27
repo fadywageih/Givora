@@ -1,16 +1,30 @@
 import React from 'react';
 import { Helmet } from 'react-helmet';
 import { Link, useNavigate } from 'react-router-dom';
-import { Trash2, Plus, Minus, ShoppingBag, ArrowRight } from 'lucide-react';
+import { Trash2, Plus, Minus, ShoppingBag, ArrowRight, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
+import { useToast } from '@/components/ui/use-toast';
 
 const Cart = () => {
   const { cart, updateCartQuantity, removeFromCart, getDiscountRate, user } = useAuth();
   const navigate = useNavigate();
+  const { toast } = useToast();
 
   const isWholesale = user?.account_type === 'wholesale' && user?.approved;
   const volumeDiscount = getDiscountRate();
+
+  const handleQuantityChange = (item, newQuantity) => {
+    if (newQuantity < item.product.moq) {
+      toast({
+        title: 'Minimum Order Quantity',
+        description: `Minimum order quantity for this product is ${item.product.moq} units.`,
+        variant: 'destructive'
+      });
+      return;
+    }
+    updateCartQuantity(item.id, newQuantity);
+  };
 
   const calculateItemPrice = (item) => {
     const product = item.product;
@@ -77,21 +91,27 @@ const Cart = () => {
                   </p>
                 </div>
 
-                <div className="flex items-center gap-4">
+                <div className="flex flex-col items-center gap-2">
                   <div className="flex items-center border border-[#D9DFE7] rounded">
                     <button
-                      className="p-2 hover:bg-gray-100"
-                      onClick={() => updateCartQuantity(item.id, item.quantity - 1)}
+                      className="p-2 hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
+                      onClick={() => handleQuantityChange(item, item.quantity - 1)}
+                      disabled={item.quantity <= item.product.moq}
+                      title={`Minimum quantity: ${item.product.moq}`}
                     >
                       <Minus className="w-4 h-4" />
                     </button>
                     <span className="w-12 text-center font-medium">{item.quantity}</span>
                     <button
                       className="p-2 hover:bg-gray-100"
-                      onClick={() => updateCartQuantity(item.id, item.quantity + 1)}
+                      onClick={() => handleQuantityChange(item, item.quantity + 1)}
                     >
                       <Plus className="w-4 h-4" />
                     </button>
+                  </div>
+                  <div className="flex items-center gap-1 text-xs text-[#0A1F44]/60">
+                    <AlertCircle className="w-3 h-3" />
+                    <span>Min: {item.product.moq}</span>
                   </div>
                   <button
                     className="text-red-500 hover:bg-red-50 p-2 rounded"

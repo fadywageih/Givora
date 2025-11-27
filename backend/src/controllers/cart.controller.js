@@ -127,6 +127,14 @@ export const updateCartItem = async (req, res, next) => {
             });
         }
 
+        // Check MOQ
+        if (quantity < cartItem.product.moq) {
+            return res.status(400).json({
+                success: false,
+                message: `Minimum order quantity is ${cartItem.product.moq} units`
+            });
+        }
+
         // Check stock
         if (cartItem.product.stockQuantity < quantity) {
             return res.status(400).json({

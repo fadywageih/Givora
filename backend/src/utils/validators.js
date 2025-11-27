@@ -86,6 +86,26 @@ export const validateProduct = [
     body('stockQuantity')
         .isInt({ min: 0 })
         .withMessage('Stock quantity must be a non-negative integer'),
+    // Optional images array validation (3 to 5 items)
+    body('images')
+        .optional()
+        .custom((val) => {
+            const arr = typeof val === 'string' ? (() => { try { return JSON.parse(val); } catch { return null; } })() : val;
+            if (!Array.isArray(arr)) {
+                throw new Error('Images must be an array');
+            }
+            if (arr.length < 3 || arr.length > 5) {
+                throw new Error('Images array must contain between 3 and 5 images');
+            }
+            for (const img of arr) {
+                if (!img || typeof img !== 'object') throw new Error('Each image must be an object');
+                if (!img.imageUrl || typeof img.imageUrl !== 'string') throw new Error('Each image must have imageUrl');
+                if (img.cloudinaryId !== undefined && img.cloudinaryId !== null && typeof img.cloudinaryId !== 'string') {
+                    throw new Error('cloudinaryId must be a string or null');
+                }
+            }
+            return true;
+        }),
     validate
 ];
 

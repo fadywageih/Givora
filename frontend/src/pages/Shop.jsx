@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Helmet } from 'react-helmet';
 import { motion } from 'framer-motion';
 import { ShoppingCart, Filter, Tag } from 'lucide-react';
@@ -8,6 +9,7 @@ import { useToast } from '@/components/ui/use-toast';
 import { productsAPI } from '@/lib/api';
 
 const Shop = () => {
+  const navigate = useNavigate();
   const { user, getDiscountRate, addToCart } = useAuth();
   const { toast } = useToast();
   const [selectedCategory, setSelectedCategory] = useState('all');
@@ -30,7 +32,7 @@ const Shop = () => {
   const volumeDiscount = getDiscountRate(); // 0.10 if applicable
 
   const calculatePrice = (product) => {
-    let price = isWholesale ? product.wholesalePrice : product.wholesalePrice;
+    let price = isWholesale ? product.wholesalePrice : product.retailPrice;
 
     // Apply additional volume discount if applicable
     if (isWholesale && volumeDiscount > 0) {
@@ -38,6 +40,18 @@ const Shop = () => {
     }
 
     return price.toFixed(2);
+  };
+
+  const handleAddToCart = (product) => {
+    if (!user) {
+      toast({
+        title: "Login Required",
+        description: "Please register or login to add items to your cart.",
+        variant: "destructive"
+      });
+      return;
+    }
+    addToCart(product, product.moq);
   };
 
   return (
@@ -97,11 +111,12 @@ const Shop = () => {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5, delay: index * 0.05 }}
-              className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-xl transition-shadow flex flex-col"
+              className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-xl transition-shadow flex flex-col cursor-pointer"
+              onClick={() => navigate(`/product/${product.id}`)}
             >
               <div className="bg-white h-48 relative overflow-hidden group">
                 <img
-                  src={product.imageUrl}
+                  src={(product.images && product.images[0]?.imageUrl) || product.imageUrl}
                   alt={product.name}
                   className="w-full h-full object-contain p-4 transition-transform duration-300 group-hover:scale-105"
                 />
@@ -138,7 +153,10 @@ const Shop = () => {
                   </p>
 
                   <Button
-                    onClick={() => addToCart(product)}
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      handleAddToCart(product)}}
                     className="w-full bg-[#0A1F44] hover:bg-[#0A1F44]/90 text-white"
                   >
                     <ShoppingCart className="w-4 h-4 mr-2" />

@@ -51,6 +51,7 @@ model Product {
   stockQuantity  Int      @map("stock_quantity")
   imageUrl       String?  @map("image_url")
   cloudinaryId   String?  @map("cloudinary_id") // For Cloudinary cleanup
+  images         String?  // JSON string array of images: [{ imageUrl: string, cloudinaryId?: string|null }]
   createdAt      DateTime @default(now()) @map("created_at")
   updatedAt      DateTime @updatedAt @map("updated_at")
 
