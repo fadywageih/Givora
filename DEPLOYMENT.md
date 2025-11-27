@@ -250,8 +250,17 @@ certbot --apache -d yourdomain.com
 **Backend `.env` (Production):**
 ```env
 # Database - Choose one:
-DATABASE_URL="file:./dev.db"  # SQLite
-# DATABASE_URL="mysql://user:pass@localhost:3306/dbname"  # MySQL
+# SQLite (Development)
+DATABASE_PROVIDER=sqlite
+DATABASE_URL="file:./dev.db"
+
+# MySQL (Production - Hostinger)
+# DATABASE_PROVIDER=mysql
+# DATABASE_URL="mysql://user:pass@localhost:3306/dbname"
+
+# PostgreSQL (Production - Render, Railway, etc.)
+# DATABASE_PROVIDER=postgresql
+# DATABASE_URL="postgresql://user:password@host:5432/givora_db"
 
 # Server
 PORT=5000
